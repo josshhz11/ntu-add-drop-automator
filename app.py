@@ -29,6 +29,8 @@ check_chrome_versions()  # Run on startup
 
 app = Flask(__name__)
 
+print("All Environment Variables:", os.environ)
+
 # Load environment variables directly from Render
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_key_for_dev")
 print(f"Loaded Secret Key: {app.secret_key}")
