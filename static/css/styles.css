@@ -157,6 +157,16 @@ button:disabled {
     margin-top: 20px;
 }
 
+/* Example: replicate your h2 styling in a class */
+.h2-like {
+    font-size: 2em;        /* match your existing h2 size */
+    line-height: 1.2;      /* match h2 line-height */
+    font-weight: bold;     /* match h2 weight */
+    margin: 0.75em 0;      /* or 0 if you want no extra spacing */
+    display: block;        /* so each line is on its own block if desired */
+    /* include any other h2 styles you need here */
+}
+
 /* Responsive styles for smaller screens */
 @media screen and (max-width: 768px) {
     .main-container {
