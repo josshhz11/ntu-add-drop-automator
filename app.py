@@ -14,6 +14,7 @@ import time
 import logging
 import os
 import subprocess
+from dotenv import load_dotenv
 
 def check_chrome_versions():
     try:
@@ -27,13 +28,15 @@ def check_chrome_versions():
 
 check_chrome_versions()  # Run on startup
 
+# Load environment variables manually (if needed)
+load_dotenv()
+
+# Explicitly fetch the secret key
+flask_secret = os.getenv("FLASK_SECRET_KEY", "fallback_key_for_dev")
 app = Flask(__name__)
+app.config["SECRET_KEY"] = flask_secret
 
-print("All Environment Variables:", os.environ)
-
-# Load environment variables directly from Render
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_key_for_dev")
-print(f"Loaded Secret Key: {app.secret_key}")
+print(f"Loaded Secret Key: {app.config['SECRET_KEY'][:10]}********")
 
 # Configure logging
 logging.basicConfig(
