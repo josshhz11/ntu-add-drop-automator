@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input Indexes - NTU Add Drop Automator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y389FX2T71"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-Y389FX2T71');
+    </script>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Left container -->
+        <div class="left-container">
+            <div class="title-container">
+                <img src="https://seeklogo.com/images/N/nanyang-technological-university-logo-99C7E42213-seeklogo.com.png" 
+                     alt="NTU Logo" class="ntu-logo">
+                <h1>NTU Add Drop Automator</h1>
+            </div>
+            <p class="description">
+                This tool helps you to periodically check vacancies for your modules you wish to swap every 5 minutes, up to a maximum of 2 hours. If slots are found, they will be automatically swapped for you. If not, it will keep running till we find a slot, or 2 hours is up. Then you will have to sign in again.
+                <br><br>
+                This tool allows for choosing multiple desired slots (if changing due to time slots), and you simply have to write all the indexes separated by commas (i.e. 80271, 80272, 80273).
+                <br><br>
+                <strong>If you're running into errors on the page, try closing this tab and trying again.</strong>
+                <br>
+                <strong>PS: Best used on a computer!</strong>
+                <br><br>
+                This tool is fully secure and no user credentials are stored or accessible.
+            </p>
+        </div>
+
+        <!-- Right container -->
+        <div class="right-container">
+            <form id="indexForm" method="POST" action="/swap-index">
+                <!-- Hidden input to pass the number of modules -->
+                <input type="hidden" name="number_of_modules" value="{{ num_modules }}">
+
+                <div id="modulesContainer">
+                    {% for i in range(num_modules) %}
+                    <div class="module-input-group">
+                        <h4>Module {{ i + 1 }}</h4>
+                        <div class="form-group">
+                            <label for="old_index_{{ i }}"><b>Old Index:</b></label>
+                            <input type="text" id="old_index_{{ i }}" name="old_index_{{ i }}" placeholder="Enter Old Index" required autofocus>
+                        </div>
+                        <div class="form-group">
+                            <label for="new_index_{{ i }}"><b>New Index:</b></label>
+                            <input type="text" id="new_index_{{ i }}" name="new_index_{{ i }}" placeholder="i.e. 80271, 80272, 80273 for multiple indexes" required>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="submit-button">Automate Swap</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

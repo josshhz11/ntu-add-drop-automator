@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swap Status - NTU Add Drop Automator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y389FX2T71"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-Y389FX2T71');
+    </script>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Left container -->
+        <div class="left-container">
+            <div class="title-container">
+                <img src="https://seeklogo.com/images/N/nanyang-technological-university-logo-99C7E42213-seeklogo.com.png" 
+                     alt="NTU Logo" class="ntu-logo">
+                <h1>NTU Add Drop Automator</h1>
+            </div>
+            <p class="description">
+                This tool helps you to periodically check vacancies for your modules you wish to swap every 5 minutes, up to a maximum of 2 hours. If slots are found, they will be automatically swapped for you. If not, it will keep running till we find a slot, or 2 hours is up. Then you will have to sign in again.
+                <br><br>
+                This tool allows for choosing multiple desired slots (if changing due to time slots), and you simply have to write all the indexes separated by commas (i.e. 80271, 80272, 80273).
+                <br><br>
+                <strong>If you're running into errors on the page, try closing this tab and trying again.</strong>
+                <br>
+                <strong>PS: Best used on a computer!</strong>
+                <br><br>
+                This tool is fully secure and no user credentials are stored or accessible.
+            </p>
+        </div>
+
+        <!-- Right container -->
+        <div class="right-container">
+            <div id="status-message">
+                <h2 id="status-text">{{ status }}</h2>
+                <h3 id="completion-message">
+                    {% if message %}
+                        {{ message }}
+                    {% endif %}
+                </h3>
+            </div>
+
+            <!-- Dynamic Swap Details -->
+            <div id="status-container">
+                {% for detail in details %}
+                <div class="status-item" id="module-{{ loop.index }}">
+                    <h3>Module {{ loop.index }}</h3>
+                    <p>Old Index: {{ detail.old_index }}</p>
+                    <p>New Index: {{ detail.new_indexes }}</p>
+                    <p>Status: <span id="status-{{ loop.index }}">{{ detail.message }}</span></p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Stop and Log Out & Log Out Buttons -->
+            <div id="button-container">
+                <button id="stop-swap-button" class="button">Stop and Log Out</button>
+                <button id="logout-button" class="button" style="display: none;">Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pollingInterval;
+        
+        // Function to fetch and update status
+        function updateStatus() {
+            fetch('/swap-status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update the overall status text
+                    document.getElementById('status-text').textContent = data.status;
+
+                    // Update the completion message
+                    const completionMessage = document.getElementById('completion-message');
+                    if (data.message) {
+                        completionMessage.textContent = data.message;
+                    } else {
+                        completionMessage.textContent = "";
+                    }
+
+                    // Update module details
+                    data.details.forEach((detail, index) => {
+                        const moduleStatus = document.getElementById(`status-${index + 1}`);
+                        if (moduleStatus) {
+                            moduleStatus.textContent = detail.message;
+                        }
+                    });
+                    
+                    // Handle buttons visibility
+                    const stopButton = document.getElementById('stop-swap-button');
+                    const logoutButton = document.getElementById('logout-button');
+                    if (data.status.toLowerCase() === "completed" || data.status.toLowerCase() === "error") {
+                        stopButton.style.display = "none";
+                        logoutButton.style.display = "block";
+                    } else {
+                        stopButton.style.display = "block";
+                        logoutButton.style.display = "none";
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching swap status:', error);
+                });
+        }
+
+        // Visibility change handler to pause polling in the background
+        function handleVisibilityChange() {
+            if (document.visibilityState === 'visible') {
+                // Start polling when the page is visible
+                if (!pollingInterval) {
+                    pollingInterval = setInterval(updateStatus, 5000);
+                }
+            } else {
+                // Stop polling when the page is hidden
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                }
+            }
+        }
+
+        // Set up visibility change listener
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Start polling when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus(); // Initial fetch
+            pollingInterval = setInterval(updateStatus, 5000);
+        })
+
+        // Stop and Log Out button functionality
+        document.getElementById('stop-swap-button').addEventListener('click', () => {
+            fetch('/stop-swap', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    window.location.href = "/"; // Redirect to index
+                })
+                .catch(error => console.error('Error stopping swap:', error));
+        });
+
+        // Log Out button functionality
+        document.getElementById('logout-button').addEventListener('click', () => {
+            fetch('/log-out', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    window.location.href = "/"; // Redirect to index
+                })
+                .catch(error => console.error('Error logging out:', error));
+        });
+    </script>
+</body>
+</html>
