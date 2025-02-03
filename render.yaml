@@ -8,7 +8,7 @@ services:
       - key: FLASK_SECRET_KEY
         value: "e9f42fdb2426869b845cc609d4ae9399775cd592b87b0c862e2cc535d5499187"
       - key: REDIS_HOST
-        value: "redis"  # Matches the Redis service name in render.yaml
+        value: "ntu-add-drop-redis"  # Matches the Redis service name in render.yaml
       - key: REDIS_PORT
         value: "6379"
       - key: REDIS_PASSWORD
@@ -20,6 +20,6 @@ services:
     env: docker
     region: singapore
 
-  - name: redis  # Add Redis Service
+  - name: ntu-add-drop-redis  # Add Redis Service
     type: redis
     plan: free  # Use free plan
