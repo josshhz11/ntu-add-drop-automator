@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ og_data.title }}</title>
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{{ og_data.title }}" />
+    <meta property="og:description" content="{{ og_data.description }}" />
+    <meta property="og:image" content="https://ntu-add-drop-automator.site/static/thumbnail.jpg" />
+    <meta property="og:url" content="{{ og_data.url }}" />
+    <meta property="og:type" content="website" />
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y389FX2T71"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-Y389FX2T71');
+    </script>
+
+</head>
+<body>
+    <div class="main-container">
+        <!-- Left container -->
+        <div class="left-container">
+            <div class="title-container">
+                <img src="https://seeklogo.com/images/N/nanyang-technological-university-logo-99C7E42213-seeklogo.com.png" 
+                     alt="NTU Logo" class="ntu-logo">
+                <h1>NTU Add Drop Automator</h1>
+            </div>
+            <p class="description">
+                This tool helps you to periodically check vacancies for your modules you wish to swap every 5 minutes, up to a maximum of 2 hours. If slots are found, they will be automatically swapped for you. If not, it will keep running till we find a slot, or 2 hours is up. Then you will have to sign in again.
+                <br><br>
+                This tool allows for choosing multiple desired slots (if changing due to time slots), and you simply have to write all the indexes separated by commas (i.e. 80271, 80272, 80273).
+                <br><br>
+                <strong>If you're running into errors on the page, try closing this tab and trying again.</strong>
+                <br>
+                <strong>PS: Best used on a computer!</strong>
+                <br><br>
+                This tool is fully secure and no user credentials are stored or accessible.
+            </p>
+        </div>
+
+        <!-- Right container -->
+        <div class="right-container">
+            <div id="status-message">
+                <h2 id="status-text">NTU Add Drop is currently offline.</h2>
+                <h2 id="status-text">Stay tuned for the next add drop period in {{ eligible_month }} {{ eligible_year }}!</h2>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

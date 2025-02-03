@@ -15,6 +15,7 @@ import logging
 import os
 import subprocess
 from dotenv import load_dotenv
+from datetime import datetime
 
 def check_chrome_versions():
     try:
@@ -170,6 +171,27 @@ def index():
         "image": "https://ntu-add-drop-automator.site/thumbnail.jpg",
         "url": "https://ntu-add-drop-automator.site/"
     }
+
+    # Check if the current month is January or August
+    now = datetime.now()
+    current_month = now.month
+
+    # If not January (1) or August (8), render the offline page
+    if current_month not in (1, 8):
+        # Determine the next eligible month and year:
+        # If current month is before August, the next eligible month is August of the same year.
+        # Otherwise (if current month is after August), the next eligible month is January of the next year.
+        if current_month < 8:
+            eligible_month = "August"
+            eligible_year = now.year
+        else:
+            eligible_month = "January"
+            eligible_year = now.year + 1
+
+        # You can pass these values to the template to show a custom message.
+        return render_template('offline.html', eligible_month=eligible_month, eligible_year=eligible_year, og_data=og_data)
+
+    # Otherwise, if it is indeed in January or August, continue running the site as per normal.
     # Check for logout or timeout messages
     message = session.pop('logout_message', None)
     return render_template('index.html', message=message, og_data=og_data)
