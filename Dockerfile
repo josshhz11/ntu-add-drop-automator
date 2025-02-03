@@ -40,26 +40,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# 1. Download and install Google Chrome version 131.0.6778.264 manually
-RUN wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && dpkg -i /tmp/google-chrome.deb || apt-get -fy install \
+# 1. Download and install **Google Chrome 131.0.6778.264**
+RUN wget -q -O /tmp/google-chrome.deb https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.264/linux64/chrome-linux64.zip \
+    && unzip /tmp/google-chrome.deb -d /opt/google/chrome \
+    && ln -s /opt/google/chrome/chrome /usr/bin/google-chrome \
     && rm /tmp/google-chrome.deb
 
-# 2. Ensure Chrome binary is correctly linked
-RUN ln -s /usr/bin/google-chrome-stable /usr/bin/google-chrome
+# 2. Verify Chrome installation
+RUN google-chrome --version
 
 # 3. Remove any existing ChromeDriver to avoid conflicts
 RUN rm -f /usr/local/bin/chromedriver
 
-# 4. Install ChromeDriver matching Google Chrome version 131.0.6778.264
+# 4. Install ChromeDriver **matching Google Chrome version 131.0.6778.264**
 RUN wget -q https://storage.googleapis.com/chrome-for-testing-public/131.0.6778.264/linux64/chromedriver-linux64.zip -O /tmp/chromedriver.zip \
     && unzip /tmp/chromedriver.zip -d /tmp/ \
     && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
     && chmod +x /usr/local/bin/chromedriver \
     && rm -rf /tmp/chromedriver-linux64 /tmp/chromedriver.zip
 
-# 5. Verify Chrome and ChromeDriver versions
-RUN /usr/bin/google-chrome --version
+# 5. Verify ChromeDriver installation
 RUN chromedriver --version
 
 # 6. Set display (optional for headless operations)
