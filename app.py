@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 redis_client = redis.StrictRedis(
     host=os.environ.get("REDIS_HOST", "redis"),
     port=int(os.environ.get("REDIS_PORT", 6379)),
-    password=os.environ.get("REDIS_PASSWORD"),
+    password=os.environ.get("REDIS_PASSWORD", None),
     decode_responses=True
 )
 
