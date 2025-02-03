@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Connect to Redis (Read from Environment Variables)
 redis_client = redis.StrictRedis(
-    host=os.environ.get("REDIS_HOST", "localhost"),
+    host=os.environ.get("REDIS_HOST", "redis"),
     port=int(os.environ.get("REDIS_PORT", 6379)),
     password=os.environ.get("REDIS_PASSWORD"),
     decode_responses=True
