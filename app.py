@@ -13,6 +13,19 @@ import threading
 import time
 import logging
 import os
+import subprocess
+
+def check_chrome_versions():
+    try:
+        chrome_version = subprocess.run(["google-chrome", "--version"], capture_output=True, text=True)
+        chromedriver_version = subprocess.run(["chromedriver", "--version"], capture_output=True, text=True)
+        
+        print("Google Chrome Version:", chrome_version.stdout.strip())
+        print("ChromeDriver Version:", chromedriver_version.stdout.strip())
+    except Exception as e:
+        print("Error checking Chrome versions:", str(e))
+
+check_chrome_versions()  # Run on startup
 
 app = Flask(__name__)
 
