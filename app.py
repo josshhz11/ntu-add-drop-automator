@@ -20,6 +20,7 @@ import os
 import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
+import subprocess
 
 # Load environment variables manually (if needed)
 load_dotenv()
@@ -79,6 +80,24 @@ def get_driver():
 def release_driver(driver):
     with pool_lock:
         driver_pool.append(driver)
+
+def check_chrome_paths():
+    try:
+        chrome_path = subprocess.getoutput("which google-chrome")
+        chromedriver_path = subprocess.getoutput("which chromedriver")
+        chrome_version = subprocess.getoutput("google-chrome --version")
+        chromedriver_version = subprocess.getoutput("chromedriver --version")
+
+        print(f"Chrome Path: {chrome_path}")
+        print(f"Chrome Version: {chrome_version}")
+        print(f"ChromeDriver Path: {chromedriver_path}")
+        print(f"ChromeDriver Version: {chromedriver_version}")
+
+    except Exception as e:
+        print(f"Error checking paths: {str(e)}")
+
+# Call this function at the start of your script
+check_chrome_paths()
 
 # Testing redis route (for my own usage)
 @app.get('/test-redis')
