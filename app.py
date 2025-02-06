@@ -64,17 +64,14 @@ CHROME_BINARY_PATH = "/usr/bin/google-chrome"
 CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
 chrome_options = Options()
-chrome_options.binary_location = "/usr/bin/google-chrome"
-chrome_options.add_argument("--headless=new")  # Use the new headless mode
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--remote-debugging-port=9222")  # Required for headless Chrome
-chrome_options.add_argument("--disable-gpu")  # Fix issues with headless Chrome
-chrome_options.add_argument("--disable-software-rasterizer")
-chrome_options.add_argument("--window-size=1920x1080")
+chrome_options.binary_location = CHROME_BINARY_PATH
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+chrome_options.add_argument('--window-size=1920x1080')
 
 # Persistent ChromeDriver Pool
-MAX_DRIVERS = 5  # Number of preloaded drivers
+MAX_DRIVERS = 1  # Number of preloaded drivers
 driver_pool = []
 pool_lock = threading.Lock()
 
