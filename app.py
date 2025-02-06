@@ -64,11 +64,14 @@ CHROME_BINARY_PATH = "/usr/bin/google-chrome"
 CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
 chrome_options = Options()
-chrome_options.binary_location = CHROME_BINARY_PATH
-chrome_options.add_argument('--headless')
-chrome_options.add_argument('--no-sandbox')
-chrome_options.add_argument('--disable-dev-shm-usage')
-chrome_options.add_argument('--window-size=1920x1080')
+chrome_options.binary_location = "/usr/bin/google-chrome"
+chrome_options.add_argument("--headless")  # Headless mode
+chrome_options.add_argument("--disable-gpu")  # Fixes rendering issues
+chrome_options.add_argument("--no-sandbox")  # Required for running as root
+chrome_options.add_argument("--disable-dev-shm-usage")  # Fix shared memory issues
+chrome_options.add_argument("--remote-debugging-port=9222")  # Enables debugging
+chrome_options.add_argument("--disable-software-rasterizer")  # Prevents crashes
+chrome_options.add_argument("--window-size=1920x1080")  # Ensures proper rendering
 
 # Persistent ChromeDriver Pool
 MAX_DRIVERS = 1  # Number of preloaded drivers
@@ -93,14 +96,22 @@ def create_driver():
 for _ in range(MAX_DRIVERS):
     driver_pool.append(create_driver())
 
-# Helper function to get an available driver
 def get_driver():
     with pool_lock:
         if driver_pool:
             return driver_pool.pop()
         else:
-            print("No available drivers in pool, creating a new one...")
-            return create_driver() # Fallback in case pool is empty
+            print("Creating new ChromeDriver instance...")
+            try:
+                driver = create_driver()
+                if driver:
+                    print("ChromeDriver started successfully!")
+                else:
+                    print("Failed to start ChromeDriver.")
+                return driver
+            except Exception as e:
+                print(f"Error starting ChromeDriver: {str(e)}")
+                return None
         
 # Return driver to the pool
 def release_driver(driver):
@@ -258,7 +269,7 @@ async def index(request: Request, redis_db=Depends(get_redis)):
         {"request": request, "message": logout_message, "og_data": og_data}
     )
 
-@app.post('/input-index')
+@app.post('/input-index', response_class=HTMLResponse)
 async def input_index(
     request: Request,
     username: str = Form(...),
