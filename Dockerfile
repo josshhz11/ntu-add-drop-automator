@@ -75,8 +75,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 9. Copy your application code into the container
 COPY . /app
 
-# 10. Expose port 5000 for Flask (mapped to port 80 on host)
+# 10. Expose port 5000 for FastAPI
 EXPOSE 5000
 
-# 11. Command to start the Flask app using Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+# 11. Command to start FastAPI with Uvicorn
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
