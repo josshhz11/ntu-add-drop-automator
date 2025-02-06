@@ -64,11 +64,14 @@ CHROME_BINARY_PATH = "/usr/bin/google-chrome"
 CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
 chrome_options = Options()
-chrome_options.binary_location = CHROME_BINARY_PATH
-chrome_options.add_argument('--headless')
-chrome_options.add_argument('--no-sandbox')
-chrome_options.add_argument('--disable-dev-shm-usage')
-chrome_options.add_argument('--window-size=1920x1080')
+chrome_options.binary_location = "/usr/bin/google-chrome"
+chrome_options.add_argument("--headless=new")  # Use the new headless mode
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--remote-debugging-port=9222")  # Required for headless Chrome
+chrome_options.add_argument("--disable-gpu")  # Fix issues with headless Chrome
+chrome_options.add_argument("--disable-software-rasterizer")
+chrome_options.add_argument("--window-size=1920x1080")
 
 # Persistent ChromeDriver Pool
 MAX_DRIVERS = 5  # Number of preloaded drivers
@@ -79,8 +82,15 @@ def create_driver():
     """
     Create and return a new Selenium WebDriver instance.
     """
-    service = Service(CHROMEDRIVER_PATH)
-    return webdriver.Chrome(service=service, options=chrome_options)
+    try:
+        print("Starting ChromeDriver...")
+        service = Service("/usr/local/bin/chromedriver")  # Ensure correct path
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        print("ChromeDriver started successfully!")
+        return driver
+    except Exception as e:
+        print(f"Error creating WebDriver: {str(e)}")
+        raise
 
 # Preload ChromeDriver instances
 for _ in range(MAX_DRIVERS):
@@ -92,6 +102,7 @@ def get_driver():
         if driver_pool:
             return driver_pool.pop()
         else:
+            print("No available drivers in pool, creating a new one...")
             return create_driver() # Fallback in case pool is empty
         
 # Return driver to the pool
