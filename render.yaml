@@ -4,11 +4,8 @@ services:
     runtime: docker
     repo: https://github.com/josshhz11/ntu-add-drop-automator
     branch: main
-    startCommand: gunicorn -w 1 -b 0.0.0.0:5000 app:app
+    startCommand: uvicorn newApp:app --host 0.0.0.0 --port 5000
     envVars:
-      - key: FLASK_SECRET_KEY
-        value: "e9f42fdb2426869b845cc609d4ae9399775cd592b87b0c862e2cc535d5499187"
-        sync: true  # Ensure it syncs with the environment
       - key: REDIS_HOST
         value: "red-cug9uopopnds7398r2kg"  # Matches the Redis service name in render.yaml
       - key: REDIS_PORT
