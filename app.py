@@ -1,114 +1,147 @@
-import redis
 import json
-from flask import Flask, request, jsonify, render_template, redirect, session, url_for, send_from_directory
+import asyncio
+import threading
+import redis
+import uvicorn
+from fastapi import FastAPI, Depends, HTTPException, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import TimeoutException, WebDriverException, SessionNotCreatedException
-from threading import Event
-import threading
-import time
-import logging
-import os
-import subprocess
 from dotenv import load_dotenv
+import os
+import time
 from datetime import datetime
-
-def check_chrome_versions():
-    try:
-        chrome_version = subprocess.run(["google-chrome", "--version"], capture_output=True, text=True)
-        chromedriver_version = subprocess.run(["chromedriver", "--version"], capture_output=True, text=True)
-        
-        print("Google Chrome Version:", chrome_version.stdout.strip())
-        print("ChromeDriver Version:", chromedriver_version.stdout.strip())
-    except Exception as e:
-        print("Error checking Chrome versions:", str(e))
-
-check_chrome_versions()  # Run on startup
+from concurrent.futures import ThreadPoolExecutor
 
 # Load environment variables manually (if needed)
 load_dotenv()
 
+# Setup Redis connection
+def get_redis():
+    """Dependency Injection: Returns a Redis connection"""
+    return redis.StrictRedis(
+        host=os.environ.get("REDIS_HOST", "red-cug9uopopnds7398r2kg"),
+        port=int(os.environ.get("REDIS_PORT", 6379)),
+        password=os.environ.get("REDIS_PASSWORD", None),
+        decode_responses=True
+    )
+
 # Explicitly fetch the secret key
-flask_secret = os.getenv("FLASK_SECRET_KEY", "fallback_key_for_dev")
-app = Flask(__name__)
-app.config["SECRET_KEY"] = flask_secret
+app = FastAPI()
 
-print(f"Loaded Secret Key: {app.config['SECRET_KEY'][:10]}********")
+# Setup Jinja2 Templates (Same as Flask's "templates" folder)
+templates = Jinja2Templates(directory="templates")
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,  # Set to DEBUG for more detailed logs
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.StreamHandler()  # Outputs logs to the console, which Docker captures
-    ]
-)
-
-# Example logger usage
-logger = logging.getLogger(__name__)
-
-# Connect to Redis (Read from Environment Variables)
-redis_client = redis.StrictRedis(
-    host=os.environ.get("REDIS_HOST", "red-cug9uopopnds7398r2kg"),
-    port=int(os.environ.get("REDIS_PORT", 6379)),
-    password=os.environ.get("REDIS_PASSWORD", None),
-    decode_responses=True
-)
-
-
-@app.route('/test-redis')
-def test_redis():
-    try:
-        redis_client.set("test_key", "Hello, Redis!")
-        value = redis_client.get("test_key")
-        return f"Redis is working! Retrieved value: {value}"
-    except Exception as e:
-        return f"Redis connection error: {str(e)}"
-
-# Utility function to set and get status data from Redis
-def set_status_data(swap_id, data):
-    redis_client.set(swap_id, json.dumps(data))
-
-def get_status_data(swap_id):
-    data = redis_client.get(swap_id)
-    return json.loads(data) if data else {"status": "idle", "details": []}
-
-@app.route('/thumbnail')
-def serve_thumbnail():
-    # Serve the image from the "static" directory
-    return send_from_directory('static', 'thumbnail.jpg')
-
-def validate_login():
-    """
-    Validates if the user is logged in by checking session data.
-    Returns True if logged in, False otherwise.
-    """
-    if 'username' in session and 'password' in session:
-        return True
-    return False
-
+# Configure ChromeDriver settings
 CHROME_BINARY_PATH = "/usr/bin/google-chrome"
 CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
+
+chrome_options = Options()
+chrome_options.binary_location = CHROME_BINARY_PATH
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+chrome_options.add_argument('--window-size=1920x1080')
+
+# Persistent ChromeDriver Pool
+MAX_DRIVERS = 5  # Number of preloaded drivers
+driver_pool = []
+pool_lock = threading.Lock()
 
 def create_driver():
     """
     Create and return a new Selenium WebDriver instance.
     """
-    options = Options()
-    options.binary_location = CHROME_BINARY_PATH
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')  # Avoid shared memory crashes
-    options.add_argument('--window-size=1920x1080')  # Optional, for better rendering
-
     service = Service(CHROMEDRIVER_PATH)
-    return webdriver.Chrome(service=service, options=options)
+    return webdriver.Chrome(service=service, options=chrome_options)
 
-def login_to_portal(driver, username, password, swap_id):
+# Preload ChromeDriver instances
+for _ in range(MAX_DRIVERS):
+    driver_pool.append(create_driver())
+
+# Helper function to get an available driver
+def get_driver():
+    with pool_lock:
+        if driver_pool:
+            return driver_pool.pop()
+        else:
+            return create_driver() # Fallback in case pool is empty
+        
+# Return driver to the pool
+def release_driver(driver):
+    with pool_lock:
+        driver_pool.append(driver)
+
+# Testing redis route (for my own usage)
+@app.get('/test-redis')
+async def test_redis(redis_db=Depends(get_redis)):
+    try:
+        redis_db.set("test_key", "Hello, Redis!")
+        value = redis_db.get("test_key")
+        return {"message": "Redis is working!", "retrieved_value": value}
+    except Exception as e:
+        return {"error": f"Redis connection error: {str(e)}"}
+
+# Pydantic Models for Request Validation
+class SwapRequest(BaseModel):
+    old_index: str
+    new_index: str
+    swap_id: str
+
+# Utility function to set and get status data from Redis
+def set_status_data(redis_db, swap_id, data):
+    redis_db.set(swap_id, json.dumps(data))
+
+def get_status_data(redis_db, swap_id):
+    data = redis_db.get(swap_id)
+    return json.loads(data) if data else {"status": "idle", "details": [], "message": None}
+
+def update_status(redis_db, swap_id, idx, message, success=False):
+    """
+    Updates the status of a specific module swap in Redis.
+
+    Args:
+        redis_db: Redis database connection.
+        swap_id (str): Unique swap session ID.
+        idx (int): Index of the module in the details list.
+        message (str): Message to update in the status.
+        success (bool): Whether the swap was successful.
+    """
+    status_data = get_status_data(redis_db, swap_id)
+
+    if idx < len(status_data["details"]):
+        status_data["details"][idx]["message"] = message
+        if success:
+            status_data["details"][idx]["swapped"] = True
+        redis_db.set(swap_id, json.dumps(status_data))
+
+# Mount the static folder (like Flask's "static" folder)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get('/thumbnail')
+async def serve_thumbnail():
+    # Serve the image from the "static" directory
+    image_path = os.path.join("static", "thumbnail.jpg")
+
+    # Ensure the file exists
+    if not os.path.exists(image_path):
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+    
+    return FileResponse(image_path, media_type="image/jpeg")
+
+# Login Validation: No session, direct request-based validation
+def validate_login(username: str, password: str):
+    return bool(username and password)
+
+def login_to_portal(driver, username, password, swap_id, redis_db):
     """
     Log in to the NTU portal.
     """
@@ -143,11 +176,9 @@ def login_to_portal(driver, username, password, swap_id):
             try:
                 plan_button = driver.find_element(By.XPATH, "//input[@value='Plan/ Registration']")
                 plan_button.click()
-                logger.info("Clicked the 'Plan/ Registration' button to proceed to the planner.")
-            except Exception as e:
+            except Exception:
                 error_message = "Unable to find or click the 'Plan/ Registration' button."
-                update_overall_status(swap_id, status="Error", message=error_message)
-                logger.error(f"{error_message} {e}")
+                update_overall_status(redis_db, swap_id, status="Error", message=error_message)
                 return False
           
         # Proceed to wait for the table if on the planner page
@@ -158,12 +189,11 @@ def login_to_portal(driver, username, password, swap_id):
     except Exception:
         # If login fails, update status and exit
         error_message = "Incorrect username/password. Please try again."
-        update_overall_status(swap_id, status="Error", message=error_message)
-        logger.error(error_message)
+        update_overall_status(redis_db, swap_id, status="Error", message=error_message)
         return False
 
-@app.route('/')
-def index():
+@app.get('/', response_class=HTMLResponse)
+async def index(request: Request, redis_db=Depends(get_redis)):
     # Open Graph metadata
     og_data = {
         "title": "NTU Add Drop Automator",
@@ -173,131 +203,167 @@ def index():
     }
 
     # Check if the current month is January or August
-    now = datetime.now()
-    current_month = now.month
+    # now = datetime.now()
+    # current_month = now.month
 
     # If not January (1) or August (8), render the offline page
-    if current_month not in (1, 8):
+    #if current_month not in (1, 8):
         # Determine the next eligible month and year:
         # If current month is before August, the next eligible month is August of the same year.
         # Otherwise (if current month is after August), the next eligible month is January of the next year.
-        if current_month < 8:
-            eligible_month = "August"
-            eligible_year = now.year
-        else:
-            eligible_month = "January"
-            eligible_year = now.year + 1
+    #    eligible_month = "August" if current_month < 8 else "January"
+    #    eligible_year = now.year if current_month < 8 else now.year + 1
 
-        # You can pass these values to the template to show a custom message.
-        return render_template('offline.html', eligible_month=eligible_month, eligible_year=eligible_year, og_data=og_data)
+    #    return templates.TemplateResponse(
+    #        "offline.html", 
+    #        {"request": request, "eligible_month": eligible_month, "eligible_year": eligible_year, "og_data": og_data}
+    #    )
 
     # Otherwise, if it is indeed in January or August, continue running the site as per normal.
     # Check for logout or timeout messages
-    message = session.pop('logout_message', None)
-    return render_template('index.html', message=message, og_data=og_data)
+    logout_message = redis_db.get("logout_message")
+    if logout_message:
+        redis_db.delete("logout_message") # Remove it after retrieving
+    
+    # Render index page with logout message (if any)
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "message": logout_message, "og_data": og_data}
+    )
 
-@app.route('/input-index', methods=['POST'])
-def input_index():
-    try:
-        session['username'] = request.form['username']
-        session['password'] = request.form['password']
-        num_modules = int(request.form['numModules'])
-        if num_modules <= 0:
-                raise ValueError("Invalid number of modules")
-        
-        return render_template('input_index.html', num_modules=num_modules)
-    except Exception as e:
-        logger.error(f"Error in input_index: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+@app.post('/input-index')
+async def input_index(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    num_modules: int = Form(...)
+):
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Invalid login credentials")
+    
+    if num_modules <= 0:
+        raise HTTPException(status_code=400, detail="Invalid number of modules")
+    
+    # Render `input_index.html` with number of modules
+    return templates.TemplateResponse(
+        "input_index.html",
+        {
+            "request": request,
+            "num_modules": num_modules,
+            "username": username, # Passing username forward so don't need to store
+            "password": password # Same for password
+        }
+    )
 
-@app.route('/swap-status', methods=['GET'])
-def render_swap_status():
+@app.get("/swap-status/{swap_id}", response_class=HTMLResponse)
+async def render_swap_status(request: Request, swap_id: str, redis_db=Depends(get_redis)):
+    """
+    Fetches swap status from Redis and renders `swap_status.html`.
+    """
     # Validate login
     if not validate_login():
-        return render_template('error.html', message="You are not logged in. Please log in to continue.")
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "message": "You are not logged in. Please log in to continue."
+            }
+        )
 
-    # Retrieve swap data
-    swap_id = session.get("swap_id")
-    if not swap_id:
-        return jsonify({"status": "idle", "details": [], "message": None})
-    
-    status_data = get_status_data(swap_id)
-    
-    # Return status data as JSON for dynamic updates
-    return jsonify(status_data)
+    status_data = redis_db.get(swap_id)
 
-@app.route('/swap-index', methods=['POST'])
-def swap_index():
-    # Check if user is logged in
-    if 'username' not in session or 'password' not in session:
-        return redirect(url_for('index'))
+    if not status_data:
+        status_data = {"status": "idle", "details": [], "message": "No active swap found."}
+
+    return templates.TemplateResponse(
+        "swap_status.html",
+        {
+            "request": request,
+            "status": status_data.get("status", "Idle"),
+            "details": status_data.get("details", []),
+            "message": status_data.get("message", None),
+        }
+    )
+
+@app.post('/swap-index', response_class=HTMLResponse)
+async def swap_index(
+    request: Request,
+    redis_db=Depends(get_redis),
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    """
+    Handles swap form submission, initiates the swap process, 
+    stores status in Redis, and renders `swap_status.html`.
+    """
+    form_data = await request.form() # Fetch all form data once
+
+    number_of_modules = int(form_data.get("number_of_modules", 0))
     
     try:
-        # Get form data
-        number_of_modules = request.form.get('number_of_modules')
-        if not number_of_modules:
-            app.logger.error("number_of_modules not found in form data")
-            raise ValueError("Number of modules not provided")
-            
-        number_of_modules = int(number_of_modules)
         if number_of_modules <= 0:
-            raise ValueError("Invalid number of modules")
+            raise HTTPException(status_code=400, detail="Invalid number of modules")
+        
+        username = form_data.get("username")
+        password = form_data.get("password")
         
         swap_items = []  # List to store (old_index, new_indexes, swapped)
         for i in range(number_of_modules):
-            old_index = request.form.get(f'old_index_{i}')
-            new_indexes_raw = request.form.get(f'new_index_{i}')
-            if not old_index or not new_indexes_raw:
-                raise ValueError(f"Missing index data for module {i+1}")
+            old_index = form_data.get(f'old_index_{i}')
+            new_indexes_raw = form_data.get(f'new_index_{i}')
             
-            # Parse new indexes into a list
-            new_indexes = [index.strip() for index in new_indexes_raw.split(",") if index.strip()]
-            if not new_indexes:
-                raise ValueError(f"Invalid new index data for module {i+1}")
+            if not old_index or not new_indexes_raw:
+                raise HTTPException(status_code=400, detail=f"Missing or invalid data for module {i+1}")
+            
+            new_index_list = [index.strip() for index in new_indexes_raw.split(",") if index.strip()]
             
             swap_items.append({
                 "old_index": old_index,
-                "new_indexes": new_indexes,
+                "new_indexes": new_index_list,
                 "swapped": False
             })
         
         # Generate a unique ID for this swap session
-        swap_id = f"{session['username']}_{int(time.time())}"
-        session["swap_id"] = swap_id
+        swap_id = f"{username}_{int(time.time())}"
 
-         # Initialize Redis with status data
+        # Initialize Redis with status data
         status_data = {
             "status": "Processing",
-            "details": [{"old_index": item["old_index"], 
-                         "new_indexes": ", ".join(item["new_indexes"]), 
-                         "swapped": False,
-                         "message": "Pending..."} for item in swap_items],
+            "details": [
+                {"old_index": item["old_index"], 
+                 "new_indexes": ", ".join(item["new_indexes"]), 
+                 "swapped": False,
+                 "message": "Pending..."}
+                for item in swap_items
+            ],
             "message": None
         }
-        set_status_data(swap_id, status_data)
+        redis_db.set(swap_id, json.dumps(status_data))
         
-        username = session['username']
-        password = session['password']
-        
-        thread = threading.Thread(target=perform_swaps, args=(username, password, swap_items, swap_id), daemon=True)
+        # Start swap processing in a separate thread
+        thread = threading.Thread(target=perform_swaps, args=(username, password, swap_items, swap_id, redis_db), daemon=True)
         thread.start()
-
-        # Render the status page initially
-        return render_template('swap_status.html',
-                               status=status_data["status"],
-                               details=status_data["details"],
-                               message=status_data["message"])
+        
+        # Render `swap_status.html` immediately
+        return templates.TemplateResponse(
+            "swap_status.html",
+            {
+                "request": request,
+                "status": status_data["status"],
+                "details": status_data["details"],
+                "message": status_data["message"],
+            }
+        )
+    
     except Exception as e:
-        app.logger.error(f"Error in swap_index: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=f"Swap initiation failed: {str(e)}")
 
-def perform_swaps(username, password, swap_items, swap_id):
+def perform_swaps(username, password, swap_items, swap_id, redis_db):
     driver = None
 
     try:
         # Browser setup
-        driver = create_driver()
-        login_to_portal(driver, username, password, swap_id)
+        driver = get_driver()
+        login_to_portal(driver, username, password, swap_id, redis_db)
 
         start_time = time.time()
         while True:
@@ -311,11 +377,13 @@ def perform_swaps(username, password, swap_items, swap_id):
                                 new_index=new_index,
                                 idx=idx,
                                 driver=driver,
-                                swap_id=swap_id
+                                swap_id=swap_id,
+                                redis_db=redis_db
                             )
                             if success:
                                 item["swapped"] = True
                                 update_status(
+                                    redis_db,
                                     swap_id,
                                     idx,
                                     message=f"Successfully swapped index {item['old_index']} to {item['new_index']}.",
@@ -325,18 +393,18 @@ def perform_swaps(username, password, swap_items, swap_id):
                             else:
                                 failed_indexes.append(new_index)
                         except WebDriverException as e:
-                            logger.error(f"WebDriver error: {e}")
-                            driver.quit()
-                            driver.create_driver() # Restart the browser
-                            login_to_portal(driver, username, password)
+                            print(f"WebDriver error: {e}")
+                            release_driver(driver) # Release current driver
+                            driver = get_driver() # Get a new driver
+                            login_to_portal(driver, username, password, swap_id, redis_db)
                             failed_indexes.append(new_index)
                         except Exception as e:
                             error_message = f"Error during swap attempt: {e}"
-                            update_status(swap_id, idx, message=error_message)
-                            logger.error(error_message)
+                            update_status(redis_db, swap_id, idx, message=error_message)
                             failed_indexes.append(new_index)
                     if not item["swapped"] and failed_indexes:
                         update_status(
+                            redis_db,
                             swap_id,
                             idx,
                             message=f"Index {', '.join(failed_indexes)} have no vacancies."
@@ -344,28 +412,40 @@ def perform_swaps(username, password, swap_items, swap_id):
             # Check if all items are swapped
             all_swapped = all(item["swapped"] for item in swap_items)
             if all_swapped:
-                update_overall_status(swap_id, status="Completed", message=f"All modules have been successfully swapped.")
+                update_overall_status(redis_db, swap_id, status="Completed", message=f"All modules have been successfully swapped.")
                 break
 
             if time.time() - start_time >= 2 * 3600:
-                update_overall_status(swap_id, status="Timed Out", message="Time limit reached before completing the swap.")
-                logger.error("Time limit reached before completing the swap.")
+                update_overall_status(redis_db, swap_id, status="Timed Out", message="Time limit reached before completing the swap.")
+                print("Time limit reached before completing the swap.")
                 break
 
             time.sleep(5 * 60)
     except Exception as e:
-        update_overall_status(swap_id, status="Error", message=f"An error occurred: {str(e)}")
-        logger.error(f"An error occurred: {str(e)}")
+        update_overall_status(redis_db, swap_id, status="Error", message=f"An error occurred: {str(e)}")
+        print(f"An error occurred: {str(e)}")
     finally:
         if driver:
-            driver.quit()
+            release_driver(driver) # Ensure driver is released back to the pool
 
-def attempt_swap(old_index, new_index, idx, driver, swap_id):
+async def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
     """
-    Returns True if swap was successful, False otherwise.
+    Performs swap attempt, updates Redis status, and returns success status.
+    
+    Args:
+        old_index (str): The current course index.
+        new_index (str): The desired new course index.
+        idx (int): The index in the swap list (for status tracking).
+        driver (webdriver.Chrome): Selenium WebDriver instance.
+        swap_id (str): Unique swap session ID.
+        redis_db: Redis connection (Injected via FastAPI).
+    
+    Returns:
+        (bool, str): Tuple with success status and message.
     """    
     try:
-        update_status(swap_id, idx, f"Attempting to swap {old_index} -> {new_index}")
+        update_status(redis_db, swap_id, idx, f"Attempting to swap {old_index} -> {new_index}")
+
         # 1) Wait for the table element to appear on the main page
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//table[@bordercolor='#E0E0E0']"))
@@ -385,16 +465,14 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
         except TimeoutException:
             # If the radio button is not found within the timeout period
             error_message = f"Old index  {old_index} not found. Swap cannot proceed."
-            update_status(swap_id, idx, error_message)
-            update_overall_status(swap_id, status="Error", message=error_message)
-            logger.error(error_message)
+            update_status(redis_db, swap_id, idx, error_message)
+            update_overall_status(redis_db, swap_id, status="Error", message=error_message)
             return False, error_message  # Return a value indicating failure
 
         except Exception as e:
             # Handle any unexpected errors
             error_message = f"Unexpected error locating radio button for index {old_index}: {str(e)}"
-            update_status(swap_id, idx, error_message)
-            logger.error(error_message)
+            update_status(redis_db, swap_id, idx, error_message)
             return False, error_message  # Return a value indicating failure
 
         # 3) Select the "Change Index" option from the dropdown
@@ -416,14 +494,11 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
             WebDriverWait(driver, 5).until(EC.alert_is_present())
             alert = driver.switch_to.alert
             alert_text = alert.text
-            print(f"Alert detected: {alert_text}")
             alert.accept()  # Close the alert
-            update_overall_status(swap_id, status="Error", message="Portal is closed now. Please try again from 10:30am - 10:00pm.")
-            logger.error("Portal is closed now. Please try again from 10:30am - 10:00pm.")
+            update_overall_status(redis_db, swap_id, status="Error", message="Portal is closed now. Please try again from 10:30am - 10:00pm.")
             return False
         except TimeoutException:
-            # If no alert, proceed to the swap index page
-            print("No alert detected, proceeding to the swap index page.")
+            pass # If no alert, proceed to the swap index page
 
         # 6) Wait for the swap index page
         WebDriverWait(driver, 10).until(
@@ -441,8 +516,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
             if not options:
                 # If the desired new index is not in the dropdown, handle the error
                 error_message = f"New Index {new_index} was not found in the dropdown options. Swap cannot proceed."
-                update_status(swap_id, idx, error_message)
-                logger.error(error_message)
+                update_status(redis_db, swap_id, idx, error_message)
                 
                 # Click the 'Back To Timetable' button
                 back_button = driver.find_element(By.XPATH, "//input[@type='submit' and @value='Back to Timetable']")
@@ -457,8 +531,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
                 print(f"The number of vacancies for index {new_index} is {vacancies}.")
             except (IndexError, ValueError) as e:
                 error_message = f"Failed to parse vacancies for index {new_index}: {str(e)}"
-                update_status(swap_id, idx, error_message)
-                logger.error(error_message)
+                update_status(redis_db, swap_id, idx, error_message)
 
                 # Click the 'Back To Timetable' button
                 back_button = driver.find_element(By.XPATH, "//input[@type='submit' and @value='Back to Timetable']")
@@ -473,8 +546,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
             if vacancies <= 0:
                 # If there are no vacancies, handle it gracefully
                 error_message = f"Index {new_index} has no vacancies. Swap cannot proceed."
-                update_status(swap_id, idx, error_message)
-                logger.error(error_message)
+                update_status(redis_db, swap_id, idx, error_message)
 
                 # Click the 'Back To Timetable' button
                 back_button = driver.find_element(By.XPATH, "//input[@type='submit' and @value='Back to Timetable']")
@@ -485,8 +557,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
         except Exception as e:
             # Catch any unexpected errors
             error_message = f"Unexpected error while checking new index {new_index}: {str(e)}"
-            update_overall_status(swap_id, status="Error", message=error_message)
-            logger.error(error_message)
+            update_overall_status(redis_db, swap_id, status="Error", message=error_message)
 
             # Click the 'Back To Timetable' button
             back_button = driver.find_element(By.XPATH, "//input[@type='submit' and @value='Back to Timetable']")
@@ -503,10 +574,8 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
             WebDriverWait(driver, 5).until(EC.alert_is_present())
             alert = driver.switch_to.alert
             alert_text = alert.text
-            print(f"Alert detected: {alert_text}")
             alert.accept()  # Close the alert
-            update_overall_status(swap_id, status="Error", message=alert_text)
-            logger.error(alert_text)
+            update_overall_status(redis_db, swap_id, status="Error", message=alert_text)
 
             # Click the 'Back To Timetable' button
             back_button = driver.find_element(By.XPATH, "//input[@type='submit' and @value='Back to Timetable']")
@@ -514,8 +583,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
             
             return False, alert_text
         except TimeoutException:
-            # If no alert, proceed to the swap index page
-            print("No slot clash alert detected, proceeding to confirm swap index.")
+            pass # If no alert, proceed to the swap index page
 
         """
         Confirm Swap Index page after choosing the mod and index you want to swap
@@ -539,97 +607,81 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id):
         print(f"Alert text: {alert.text}")
         alert.accept()      # Accept (click OK) on the alert
 
+        update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
         return True, "" # Successful swap, no error message
     
     except SessionNotCreatedException as e:
-        logger.error("Session expired. Re-logging in...")
-        driver.quit()
-        driver = create_driver()
-        login_to_portal(driver, session['username'], session['password'], swap_id)
-        return False, "Session expired and was refreshed. Retry swap."
-
-    except Exception as e:
-        current_url = driver.current_url
-        page_title = driver.title
-        error_message = (
-            f"Error during swap attempt for {old_index} -> {new_index}: {e}. "
-            f"Current URL: {current_url}, Page Title: {page_title}"
-        )
-        update_status(swap_id, idx, error_message)
-        logger.error(error_message)
+        error_message = "Session expired. Re-logging in..."
+        update_status(redis_db, swap_id, idx, error_message)
         return False, error_message
 
-def update_status(swap_id, idx, message, success=False):
-    """
-    Updates the status of a specific module swap in Redis.
+    except Exception as e:
+        error_message = f"Error during swap attempt for {old_index} -> {new_index}: {str(e)}"
+        update_status(redis_db, swap_id, idx, error_message)
+        return False, error_message
+    
+    finally:
+        release_driver(driver)  # Always return driver to pool
 
-    Args:
-        swap_id (str): Unique swap session ID.
-        idx (int): Index of the module in the details list.
-        message (str): Message to update in the status.
-        success (bool): Whether the swap was successful.
-    """
-    status_data = get_status_data(swap_id)
-    if idx < len(status_data["details"]):
-        status_data["details"][idx]["message"] = message
-        if success:
-            status_data["details"][idx]["swapped"] = True
-        set_status_data(swap_id, status_data)
-
-def update_overall_status(swap_id, status, message):
+def update_overall_status(redis_db, swap_id, status, message):
     """
     Updates the overall status and message of the swap operation in Redis.
 
     Args:
+        redis_db: Redis connection (injected via FastAPI).
         swap_id (str): Unique swap session ID.
         status (str): The overall status to set (e.g., "Error", "Completed").
         message (str): The overall message to set.
     """
-    status_data = get_status_data(swap_id)  # Fetch current status_data
+    status_data = get_status_data(redis_db, swap_id)  # Fetch current status
     status_data["status"] = status  # Update overall status
     status_data["message"] = message  # Update overall message
-    set_status_data(swap_id, status_data)  # Save changes back to Redis
+    set_status_data(redis_db, swap_id, status_data)  # Save changes back to Redis
 
-@app.route('/stop-swap', methods=['POST'])
-def stop_swap():
+@app.post('/stop-swap')
+async def stop_swap(swap_id: str, redis_db=Depends(get_redis)):
     """
-    Stops the ongoing swap operation and logs the user out.
+    Stops the ongoing swap operation.
+
+    Args:
+        swap_id (str): The unique swap session ID.
 
     Returns:
         JSON response indicating the swap operation has been stopped.
     """
-    swap_id = session.get("swap_id")
-    if swap_id:
-        # Update status_data in Redis
-        status_data = get_status_data(swap_id)
-        status_data["status"] = "Stopped"
-        status_data["message"] = "The swap operation has been stopped by the user."
-        set_status_data(swap_id, status_data)
-        # Clear status data from Redis
-        redis_client.delete(swap_id)  # Remove status data associated with the swap_id
+    status_data = get_status_data(redis_db, swap_id)
+    status_data["status"] = "Stopped"
+    status_data["message"] = "The swap operation has been stopped by the user."
+    set_status_data(redis_db, swap_id, status_data)
 
-    # Clear user session data
-    session.clear() # Clear all session data
-    session['logout_message'] = "You have stopped the swap and logged out."
+    # Store logout message in Redis for index page
+    redis_db.set("logout_message", "You have stopped the swap and logged out.")
 
-    return jsonify({"message": "Swap operation stopped. Logging out."})
+    # Clear status data from Redis
+    redis_db.delete(swap_id)  # Remove status data associated with the swap_id
 
-@app.route('/log-out', methods=['POST'])
-def log_out():
+    # Redirect user to index page
+    return RedirectResponse(url="/", status_code=303)
+
+@app.post('/log-out')
+async def log_out(swap_id: str, redis_db=Depends(get_redis)):
     """
-    Clears the user session and logs the user out,
-    also cleans up Redis status data.
+    Clears Redis status data and logs the user out.
+
+    Args:
+        swap_id (str): The unique swap session ID.
+
+    Returns:
+        JSON response confirming log out.
     """
-    swap_id = session.get("swap_id")
-    if swap_id:
-        # Clear status data from Redis
-        redis_client.delete(swap_id)  # Remove status data associated with the swap_id
+    redis_db.delete(swap_id)  # Remove status data associated with the swap_id
 
-    session.clear()  # Clear all session data
-    session['logout_message'] = "Successfully logged out."
-    return jsonify({"message": "You have been logged out successfully."})
+    # Store logout message in Redis
+    redis_db.set("logout_message", "Successfully logged out.")
+
+    # Redirect user to index page
+    return RedirectResponse(url="/", status_code=303)
 
 
-if __name__ == '__main__':
-    app.config['DEBUG'] = True
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=5000)

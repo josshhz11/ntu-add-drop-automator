@@ -1,3 +1,5 @@
+fastapi
+uvicorn
 selenium
 bs4
 requests
@@ -7,4 +9,7 @@ flask_session
 flask-session
 gunicorn
 redis
+aioredis
 python-dotenv
+asyncio
+python-multipart

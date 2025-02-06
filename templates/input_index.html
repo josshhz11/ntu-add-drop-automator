@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Input Indexes - NTU Add Drop Automator</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/styles.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y389FX2T71"></script>
@@ -42,6 +42,9 @@
         <div class="right-container">
             <form id="indexForm" method="POST" action="/swap-index">
                 <!-- Hidden input to pass the number of modules -->
+                <input type="hidden" name="username" value="{{ username }}">
+                <input type="hidden" name="password" value="{{ password }}">
+                
                 <input type="hidden" name="number_of_modules" value="{{ num_modules }}">
 
                 <div id="modulesContainer">
