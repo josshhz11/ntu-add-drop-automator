@@ -12,7 +12,7 @@ This web application provides a solution to this problem: by making use of web a
 ## The Solution
 A full-stack web application used by 550+ NTU students to automate course swapping using web agents, reducing manual slot checking by 40%, with a tech stack comprising of a FastAPI backend, HTML, CSS, JS frontend, and Docker for deployment on Render.
 
-How this program works is that it makes use of web agents to automatically log into the school portal every five minutes, to check and attempt swaps for course indexes. If there are no slots, the web agent will try again every five minutes, until a swap is found or 2 hours is up, whichever is sooner.
+How this application works is that it makes use of web agents to automatically log into the school portal every five minutes, to check and attempt swaps for course indexes. If there are no slots, the web agent will try again every five minutes, until a swap is found or 2 hours is up, whichever is sooner.
 
 ## How can we use this web application?
 
