@@ -5,14 +5,14 @@
 ## Problem Statement
 To help NTU students arrange their modules and classes efficiently during the add drop period at the start of each semester (January, August).
 
-Nanyang Technological University students have always faced the issue of having to 'camp' on the school portal, to wait for vacancies for the class slots they want, due to it being first-come-first-serve. As such, having to constantly be on the school portal to refresh and check for slot timings for the classes they want is an inconvenience at the start of every semester.
+Nanyang Technological University students have always faced the issue of having to 'camp' on the school portal, to wait for vacancies for the class slots they want, due to it being first-come-first-serve. This manual slot checking for slot timings for the classes students want is an inconvenience at the start of every semester.
 
-This web application makes use of web agents that provide a solution to this problem: by automating the process of logging into the school website to check for available vacancies for the class timings they want, and to streamline that process into notifications into their own Telegram channel, due to the popularity of Telegram as a social media platform for NTU students.
+This web application provides a solution to this problem: by making use of web agents automate the process of logging into the school website to attempt swaps for course indexes.
 
 ## The Solution
 A full-stack web application used by 550+ NTU students to automate course swapping using web agents, reducing manual slot checking by 40%, with a tech stack comprising of a FastAPI backend, HTML, CSS, JS frontend, and Docker for deployment on Render.
 
-How this program works is that it makes use of web agents to automatically log into the school portal every five minutes, to check and attempt swaps for course indexes. If there are no slots, the web agents will try again every five minutes, until a swap is found or 2 hours is up, whichever is sooner.
+How this program works is that it makes use of web agents to automatically log into the school portal every five minutes, to check and attempt swaps for course indexes. If there are no slots, the web agent will try again every five minutes, until a swap is found or 2 hours is up, whichever is sooner.
 
 ## How can we use this web application?
 
@@ -22,7 +22,9 @@ On the home screen, you are presented with 3 input fields: your username and pas
 ![Index Page](static/NTU-Add-Drop-Automator-Index.jpg)
 
 ### 2. Input Indexes Page
-On the next page, you are presented with 2 input fields for every module you wish to swap: the old index and new index(es). For each module, you simply need to enter in the old index of the module you wish to swap out of (you do not need to key in the course code), and the new indexes (at least one), that you wish to enter. If you wish to attempt swaps for more than one new index, you can enter it all into the same input field, separated by a comma and a space, i.e. "80271, 80272, 80273"
+On the next page, you are presented with 2 input fields for every module you wish to swap: the old index and new index(es). For each module, you simply need to enter in the old index of the module you wish to swap out of (you do not need to key in the course code), and the new indexes (at least 1), that you wish to enter. If you wish to attempt swaps for multiple new indexes, you can enter it all into the same input field, separated by a comma and a space, i.e. "80271, 80272, 80273"
+
+![Swap Status Page](static/NTU-Add-Drop-Automator-Input-Index.png)
 
 ### 3. Swap Status Page
 On the final page, you are presented with a swap status page which shows the status for all the modules you are attempting to swap. Once done, you will be shown a "Completed" status, as below.
