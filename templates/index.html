@@ -51,33 +51,14 @@
             {% if message %}
                 <p class="alert">{{ message }}</p>
             {% endif %}
-            <form action="/input-index" method="POST">
-
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <form action="/input-index" method="post">
                 <div class="form-group">
                     <label for="username"><b>Username:</b></label>
-                    <input 
-                        type="text" 
-                        id="username" 
-                        name="username" 
-                        placeholder="Enter your username" 
-                        required 
-                        autocomplete="off"
-                        autofocus
-                        pattern="[A-Za-z0-9]+"
-                        maxlength="50"
-                        oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'');">
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
                 </div>
                 <div class="form-group">
                     <label for="password"><b>Password:</b></label>
-                    <input 
-                        type="password" 
-                        id="password" 
-                        name="password" 
-                        placeholder="Enter your password" 
-                        required
-                        autocomplete="off"
-                        maxlength="50">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
                 </div>
                 <div class="form-group">
                     <label for="numModules"><b>Number of Modules:</b></label>
