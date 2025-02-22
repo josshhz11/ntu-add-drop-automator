@@ -3,11 +3,13 @@ uvicorn
 selenium
 bs4
 requests
+python-telegram-bot
+flask
+flask_session
+flask-session
 gunicorn
+redis
+aioredis
 python-dotenv
 asyncio
 python-multipart
-starlette
-cryptography
-itsdangerous>=2.0.0
-jinja2>=3.0.0
