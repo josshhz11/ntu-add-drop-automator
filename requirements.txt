@@ -13,3 +13,5 @@ aioredis
 python-dotenv
 asyncio
 python-multipart
+starlette>=0.27.0
+cryptography>=35.0.0
