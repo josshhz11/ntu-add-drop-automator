@@ -9,3 +9,4 @@ asyncio
 python-multipart
 starlette
 cryptography
+itsdangerous>=2.0.0
