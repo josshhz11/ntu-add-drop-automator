@@ -6,7 +6,6 @@ requests
 python-telegram-bot
 flask
 flask_session
-flask-session
 gunicorn
 redis
 aioredis
