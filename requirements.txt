@@ -3,15 +3,9 @@ uvicorn
 selenium
 bs4
 requests
-python-telegram-bot
-flask
-flask_session
 gunicorn
-redis
-aioredis
 python-dotenv
 asyncio
 python-multipart
-starlette
-starlette-csrf
+starlette>=0.20.0
 cryptography
