@@ -7,6 +7,5 @@ gunicorn
 python-dotenv
 asyncio
 python-multipart
-starlette>=0.20.0
+starlette
 cryptography
-itsdangerous>=2.0.0

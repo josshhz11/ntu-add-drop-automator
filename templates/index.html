@@ -51,7 +51,7 @@
             {% if message %}
                 <p class="alert">{{ message }}</p>
             {% endif %}
-            <form action="/input-index" method="post">
+            <form action="/input-index" method="POST">
 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="form-group">

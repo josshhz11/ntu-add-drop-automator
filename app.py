@@ -6,6 +6,7 @@ from fastapi import FastAPI, Depends, HTTPException, Form, Request, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import APIKeyCookie
 from pydantic import BaseModel
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -23,7 +24,6 @@ import subprocess
 import secrets
 from starlette.middleware.sessions import SessionMiddleware
 from cryptography.fernet import Fernet
-from starlette.middleware.csrf import CSRFMiddleware
 
 def check_chrome_paths():
     try:
@@ -58,13 +58,6 @@ app.add_middleware(
     max_age=7200,  # 2 hours
     same_site="strict",
     https_only=True
-)
-
-# Add CSRF middleware
-app.add_middleware(
-    CSRFMiddleware,
-    secret=SECRET_KEY,
-    safe_methods=("GET", "HEAD", "OPTIONS", "TRACE")
 )
 
 # Setup Jinja2 Templates (Same as Flask's "templates" folder)
@@ -233,9 +226,17 @@ def login_to_portal(driver, username, password, swap_id, request):
 
 # Generate CSRF token for forms
 def get_csrf_token(request: Request):
+    """Generate and store CSRF token in session"""
     if "csrf_token" not in request.session:
         request.session["csrf_token"] = secrets.token_urlsafe(32)
     return request.session["csrf_token"]
+
+async def validate_csrf_token(request: Request, csrf_token: str = Form(...)):
+    """Validate CSRF token from form submission"""
+    stored_token = request.session.get("csrf_token")
+    if not stored_token or stored_token != csrf_token:
+        raise HTTPException(status_code=400, detail="Invalid CSRF token")
+    return csrf_token
 
 @app.get('/', response_class=HTMLResponse)
 async def index(request: Request):
@@ -299,7 +300,7 @@ class CredentialManager:
 @app.post('/input-index', response_class=HTMLResponse)
 async def input_index(
     request: Request,
-    csrf_token: str = Form(...),
+    csrf_token: str = Depends(validate_csrf_token),
     username: str = Form(...),
     password: str = Form(...),
     num_modules: int = Form(...)
