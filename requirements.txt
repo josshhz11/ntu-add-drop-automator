@@ -10,3 +10,4 @@ python-multipart
 starlette
 cryptography
 itsdangerous>=2.0.0
+jinja2>=3.0.0
