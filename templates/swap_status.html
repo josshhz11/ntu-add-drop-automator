@@ -71,21 +71,19 @@
 
     <script>
         let pollingInterval;
+        const swap_id = "{{ swap_id }}"; // Get swap_id from template
         
         // Function to fetch and update status
         function updateStatus() {
-            fetch('/swap-status')
-                .then(response => response.json())
+            fetch('/swap-status/${swap_id}')
+                .then(response => response.text())
                 .then(data => {
                     // Update the overall status text
                     document.getElementById('status-text').textContent = data.status;
 
                     // Update the completion message
-                    const completionMessage = document.getElementById('completion-message');
                     if (data.message) {
-                        completionMessage.textContent = data.message;
-                    } else {
-                        completionMessage.textContent = "";
+                        document.getElementById('completion-message').textContent = data.message;
                     }
 
                     // Update module details
@@ -99,7 +97,10 @@
                     // Handle buttons visibility
                     const stopButton = document.getElementById('stop-swap-button');
                     const logoutButton = document.getElementById('logout-button');
-                    if (data.status.toLowerCase() === "completed" || data.status.toLowerCase() === "error") {
+                    if (data.status.toLowerCase() === "completed" ||
+                        data.status.toLowerCase() === "error" ||
+                        data.status.toLowerCase() === "timed out") {
+                        
                         stopButton.style.display = "none";
                         logoutButton.style.display = "block";
                     } else {

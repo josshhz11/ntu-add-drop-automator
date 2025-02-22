@@ -41,12 +41,6 @@
         <!-- Right container -->
         <div class="right-container">
             <form id="indexForm" method="POST" action="/swap-index">
-                <!-- Hidden input to pass the number of modules -->
-                <input type="hidden" name="username" value="{{ username }}">
-                <input type="hidden" name="password" value="{{ password }}">
-                
-                <input type="hidden" name="number_of_modules" value="{{ num_modules }}">
-
                 <div id="modulesContainer">
                     {% for i in range(num_modules) %}
                     <div class="module-input-group">
