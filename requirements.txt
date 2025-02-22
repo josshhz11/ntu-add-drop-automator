@@ -14,4 +14,5 @@ python-dotenv
 asyncio
 python-multipart
 starlette
+starlette-csrf
 cryptography
