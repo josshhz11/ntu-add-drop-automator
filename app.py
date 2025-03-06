@@ -369,9 +369,6 @@ async def swap_index(
         if number_of_modules <= 0:
             raise HTTPException(status_code=400, detail="Invalid number of modules")
         
-        username = form_data.get("username")
-        password = form_data.get("password")
-        
         swap_items = []  # List to store (old_index, new_indexes, swapped)
         for i in range(number_of_modules):
             old_index = form_data.get(f'old_index_{i}')
@@ -688,7 +685,7 @@ async def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
         return False, error_message
     
     finally:
-        release_driver(driver)  # Always return driver to pool
+        pass
 
 def update_overall_status(redis_db, swap_id, status, message):
     """
@@ -742,7 +739,7 @@ async def stop_swap(request: Request, redis_db=Depends(get_redis)):
     return RedirectResponse(url="/", status_code=303)
 
 @app.post('/log-out')
-async def log_out(request: Request, swap_id: str = Form(...), redis_db=Depends(get_redis)):
+async def log_out(request: Request, redis_db=Depends(get_redis)):
     """
     Clears Redis status data and logs the user out.
 
