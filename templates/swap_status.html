@@ -79,7 +79,7 @@
             // Get the swap_id from the hidden input
             const swapId = document.getElementById('swap-id').value;
 
-            fetch('/swap-status/${swapId}')
+            fetch(`/swap-status/${swapId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -154,12 +154,15 @@
 
         // Stop and Log Out button functionality
         document.getElementById('stop-swap-button').addEventListener('click', () => {
-        const swapId = document.getElementById('swap-id').value;
-            fetch(`/stop-swap?swap_id=${swapId}`, { 
+            const swapId = document.getElementById('swap-id').value;
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('swap_id', swapId);
+            
+            fetch('/stop-swap', { 
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                }
+                body: formData
             })
             .then(response => {
                 window.location.href = "/"; // Redirect to index
@@ -170,11 +173,14 @@
         // Log Out button functionality
         document.getElementById('logout-button').addEventListener('click', () => {
             const swapId = document.getElementById('swap-id').value;
-            fetch(`/log-out?swap_id=${swapId}`, { 
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('swap_id', swapId);
+            
+            fetch('/log-out', { 
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                }
+                body: formData
             })
             .then(response => {
                 window.location.href = "/"; // Redirect to index

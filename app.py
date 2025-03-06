@@ -325,18 +325,26 @@ async def render_swap_status(request: Request, swap_id: str, redis_db=Depends(ge
             }
         )
 
-    status_data = redis_db.get(swap_id)
+    # Parse Redis data properly
+    status_data = get_status_data(redis_db, swap_id)
+    
+    # Make sure we have default data if Redis returns nothing
+    if status_data.get("status") == "idle" and not status_data.get("details"):
+        status_data = {
+            "status": "Processing", 
+            "details": [], 
+            "message": "Starting swap process..."
+        }
 
-    if not status_data:
-        status_data = {"status": "idle", "details": [], "message": "No active swap found."}
-
+    # Return the template with parsed data
     return templates.TemplateResponse(
         "swap_status.html",
         {
             "request": request,
-            "status": status_data.get("status", "Idle"),
-            "details": status_data.get("details", []),
-            "message": status_data.get("message", None),
+            "swap_id": swap_id,  # Make sure to include swap_id
+            "status": status_data["status"],
+            "details": status_data["details"],
+            "message": status_data["message"],
         }
     )
 
@@ -698,7 +706,7 @@ def update_overall_status(redis_db, swap_id, status, message):
     set_status_data(redis_db, swap_id, status_data)  # Save changes back to Redis
 
 @app.post('/stop-swap')
-async def stop_swap(request: Request, swap_id: str = Form(...), redis_db=Depends(get_redis)):
+async def stop_swap(request: Request, redis_db=Depends(get_redis)):
     """
     Stops the ongoing swap operation.
 
@@ -708,6 +716,14 @@ async def stop_swap(request: Request, swap_id: str = Form(...), redis_db=Depends
     Returns:
         JSON response indicating the swap operation has been stopped.
     """
+    # Get swap_id from query params or form data
+    form_data = await request.form()
+    query_params = request.query_params
+    
+    swap_id = form_data.get("swap_id") or query_params.get("swap_id")
+    if not swap_id:
+        raise HTTPException(status_code=400, detail="Missing swap_id")
+        
     status_data = get_status_data(redis_db, swap_id)
     status_data["status"] = "Stopped"
     status_data["message"] = "The swap operation has been stopped by the user."
@@ -736,6 +752,14 @@ async def log_out(request: Request, swap_id: str = Form(...), redis_db=Depends(g
     Returns:
         JSON response confirming log out.
     """
+    # Get swap_id from query params or form data
+    form_data = await request.form()
+    query_params = request.query_params
+    
+    swap_id = form_data.get("swap_id") or query_params.get("swap_id")
+    if not swap_id:
+        raise HTTPException(status_code=400, detail="Missing swap_id")
+        
     redis_db.delete(swap_id)  # Remove status data associated with the swap_id
 
     # Clear session data
