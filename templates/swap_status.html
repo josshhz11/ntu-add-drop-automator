@@ -40,6 +40,8 @@
 
         <!-- Right container -->
         <div class="right-container">
+            <!-- Add this near the top of your right-container div -->
+            <input type="hidden" id="swap-id" value="{{ swap_id }}">
             <div id="status-message">
                 <h2 id="status-text">{{ status }}</h2>
                 <h3 id="completion-message">
@@ -74,32 +76,45 @@
         
         // Function to fetch and update status
         function updateStatus() {
-            fetch('/swap-status')
-                .then(response => response.json())
-                .then(data => {
-                    // Update the overall status text
-                    document.getElementById('status-text').textContent = data.status;
+            // Get the swap_id from the hidden input
+            const swapId = document.getElementById('swap-id').value;
 
-                    // Update the completion message
-                    const completionMessage = document.getElementById('completion-message');
-                    if (data.message) {
-                        completionMessage.textContent = data.message;
-                    } else {
-                        completionMessage.textContent = "";
+            fetch('/swap-status/${swapId}')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
                     }
-
-                    // Update module details
-                    data.details.forEach((detail, index) => {
-                        const moduleStatus = document.getElementById(`status-${index + 1}`);
-                        if (moduleStatus) {
-                            moduleStatus.textContent = detail.message;
+                    return response.text(); // Get the HTML response
+                })
+                .then(html => {
+                    // Create a temporary DOM element to parse the HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    
+                    // Extract the status text
+                    const newStatus = tempDiv.querySelector('#status-text').textContent;
+                    document.getElementById('status-text').textContent = newStatus;
+                    
+                    // Extract the completion message
+                    const newMessage = tempDiv.querySelector('#completion-message').textContent;
+                    document.getElementById('completion-message').textContent = newMessage;
+                    
+                    // Update each module's status
+                    const statusItems = tempDiv.querySelectorAll('.status-item');
+                    statusItems.forEach((item, index) => {
+                        const statusSpan = item.querySelector(`span[id^="status-"]`);
+                        if (statusSpan) {
+                            document.getElementById(`status-${index + 1}`).textContent = statusSpan.textContent;
                         }
                     });
                     
-                    // Handle buttons visibility
+                    // Update button visibility based on status
                     const stopButton = document.getElementById('stop-swap-button');
                     const logoutButton = document.getElementById('logout-button');
-                    if (data.status.toLowerCase() === "completed" || data.status.toLowerCase() === "error") {
+                    
+                    if (newStatus.toLowerCase() === "completed" || 
+                        newStatus.toLowerCase() === "error" || 
+                        newStatus.toLowerCase() === "timed out") {
                         stopButton.style.display = "none";
                         logoutButton.style.display = "block";
                     } else {
@@ -139,22 +154,32 @@
 
         // Stop and Log Out button functionality
         document.getElementById('stop-swap-button').addEventListener('click', () => {
-            fetch('/stop-swap', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    window.location.href = "/"; // Redirect to index
-                })
-                .catch(error => console.error('Error stopping swap:', error));
+        const swapId = document.getElementById('swap-id').value;
+            fetch(`/stop-swap?swap_id=${swapId}`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => {
+                window.location.href = "/"; // Redirect to index
+            })
+            .catch(error => console.error('Error stopping swap:', error));
         });
 
         // Log Out button functionality
         document.getElementById('logout-button').addEventListener('click', () => {
-            fetch('/log-out', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    window.location.href = "/"; // Redirect to index
-                })
-                .catch(error => console.error('Error logging out:', error));
+            const swapId = document.getElementById('swap-id').value;
+            fetch(`/log-out?swap_id=${swapId}`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                }
+            })
+            .then(response => {
+                window.location.href = "/"; // Redirect to index
+            })
+            .catch(error => console.error('Error logging out:', error));
         });
     </script>
 </body>

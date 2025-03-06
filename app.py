@@ -146,7 +146,13 @@ def set_status_data(redis_db, swap_id, data):
 
 def get_status_data(redis_db, swap_id):
     data = redis_db.get(swap_id)
-    return json.loads(data) if data else {"status": "idle", "details": [], "message": None}
+    if data:
+        try:
+            return json.loads(data)
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON for swap_id: {swap_id}")
+            return {"status": "error", "details": [], "message": "Error retrieving status data"}
+    return {"status": "idle", "details": [], "message": None}
 
 def update_status(redis_db, swap_id, idx, message, success=False):
     """
@@ -400,6 +406,7 @@ async def swap_index(
             "swap_status.html",
             {
                 "request": request,
+                "swap_id": swap_id,
                 "status": status_data["status"],
                 "details": status_data["details"],
                 "message": status_data["message"],
@@ -691,7 +698,7 @@ def update_overall_status(redis_db, swap_id, status, message):
     set_status_data(redis_db, swap_id, status_data)  # Save changes back to Redis
 
 @app.post('/stop-swap')
-async def stop_swap(request: Request, swap_id: str, redis_db=Depends(get_redis)):
+async def stop_swap(request: Request, swap_id: str = Form(...), redis_db=Depends(get_redis)):
     """
     Stops the ongoing swap operation.
 
@@ -719,7 +726,7 @@ async def stop_swap(request: Request, swap_id: str, redis_db=Depends(get_redis))
     return RedirectResponse(url="/", status_code=303)
 
 @app.post('/log-out')
-async def log_out(request: Request, swap_id: str, redis_db=Depends(get_redis)):
+async def log_out(request: Request, swap_id: str = Form(...), redis_db=Depends(get_redis)):
     """
     Clears Redis status data and logs the user out.
 
