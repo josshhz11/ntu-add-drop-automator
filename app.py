@@ -21,6 +21,8 @@ import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
+from fastapi.middleware.sessions import SessionMiddleware
+import secrets
 
 def check_chrome_paths():
     try:
@@ -55,6 +57,10 @@ def get_redis():
 
 # Explicitly fetch the secret key
 app = FastAPI()
+
+# Generate a random secret key for session encryption
+SECRET_KEY = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 # Setup Jinja2 Templates (Same as Flask's "templates" folder)
 templates = Jinja2Templates(directory="templates")
@@ -281,15 +287,17 @@ async def input_index(
     
     if num_modules <= 0:
         raise HTTPException(status_code=400, detail="Invalid number of modules")
+
+    # Store credentials in session instead of form fields
+    request.session["username"] = username
+    request.session["password"] = password
     
     # Render `input_index.html` with number of modules
     return templates.TemplateResponse(
         "input_index.html",
         {
             "request": request,
-            "num_modules": num_modules,
-            "username": username, # Passing username forward so don't need to store
-            "password": password # Same for password
+            "num_modules": num_modules
         }
     )
 
@@ -325,15 +333,17 @@ async def render_swap_status(request: Request, swap_id: str, redis_db=Depends(ge
 @app.post('/swap-index', response_class=HTMLResponse)
 async def swap_index(
     request: Request,
-    redis_db=Depends(get_redis),
-    username: str = Form(...),
-    password: str = Form(...)
+    redis_db=Depends(get_redis)
 ):
     """
     Handles swap form submission, initiates the swap process, 
     stores status in Redis, and renders `swap_status.html`.
     """
     form_data = await request.form() # Fetch all form data once
+
+    # Get credentials from session instead of form
+    username = request.session.get("username")
+    password = request.session.get("password")
 
     number_of_modules = int(form_data.get("number_of_modules", 0))
     
@@ -677,7 +687,7 @@ def update_overall_status(redis_db, swap_id, status, message):
     set_status_data(redis_db, swap_id, status_data)  # Save changes back to Redis
 
 @app.post('/stop-swap')
-async def stop_swap(swap_id: str, redis_db=Depends(get_redis)):
+async def stop_swap(request: Request, swap_id: str, redis_db=Depends(get_redis)):
     """
     Stops the ongoing swap operation.
 
@@ -698,11 +708,14 @@ async def stop_swap(swap_id: str, redis_db=Depends(get_redis)):
     # Clear status data from Redis
     redis_db.delete(swap_id)  # Remove status data associated with the swap_id
 
+    # Clear session data
+    request.session.clear()
+
     # Redirect user to index page
     return RedirectResponse(url="/", status_code=303)
 
 @app.post('/log-out')
-async def log_out(swap_id: str, redis_db=Depends(get_redis)):
+async def log_out(request: Request, swap_id: str, redis_db=Depends(get_redis)):
     """
     Clears Redis status data and logs the user out.
 
@@ -713,6 +726,9 @@ async def log_out(swap_id: str, redis_db=Depends(get_redis)):
         JSON response confirming log out.
     """
     redis_db.delete(swap_id)  # Remove status data associated with the swap_id
+
+    # Clear session data
+    request.session.clear()
 
     # Store logout message in Redis
     redis_db.set("logout_message", "Successfully logged out.")

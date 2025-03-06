@@ -13,3 +13,4 @@ aioredis
 python-dotenv
 asyncio
 python-multipart
+itsdangerous
