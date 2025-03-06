@@ -21,7 +21,7 @@ import time
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
-from fastapi.middleware.sessions import SessionMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 import secrets
 
 def check_chrome_paths():
@@ -251,17 +251,17 @@ async def index(request: Request, redis_db=Depends(get_redis)):
     current_month = now.month
 
     # If not January (1) or August (8), render the offline page
-    if current_month not in (1, 8):
+    #if current_month not in (1, 8):
         # Determine the next eligible month and year:
         # If current month is before August, the next eligible month is August of the same year.
         # Otherwise (if current month is after August), the next eligible month is January of the next year.
-        eligible_month = "August" if current_month < 8 else "January"
-        eligible_year = now.year if current_month < 8 else now.year + 1
+        #eligible_month = "August" if current_month < 8 else "January"
+        #eligible_year = now.year if current_month < 8 else now.year + 1
 
-        return templates.TemplateResponse(
-            "offline.html", 
-            {"request": request, "eligible_month": eligible_month, "eligible_year": eligible_year, "og_data": og_data}
-        )
+        #return templates.TemplateResponse(
+        #    "offline.html", 
+        #    {"request": request, "eligible_month": eligible_month, "eligible_year": eligible_year, "og_data": og_data}
+        #)
 
     # Otherwise, if it is indeed in January or August, continue running the site as per normal.
     # Check for logout or timeout messages
@@ -307,10 +307,14 @@ async def render_swap_status(request: Request, swap_id: str, redis_db=Depends(ge
     Fetches swap status from Redis and renders `swap_status.html`.
     """
     # Validate login
-    if not validate_login():
+    username = request.session.get("username")
+    password = request.session.get("password")
+    
+    if not validate_login(username, password):
         return templates.TemplateResponse(
             "error.html",
             {
+                "request": request,  # Also add the request object
                 "message": "You are not logged in. Please log in to continue."
             }
         )
