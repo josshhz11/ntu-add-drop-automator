@@ -242,15 +242,20 @@ def login_to_portal(driver, username, password, swap_id, redis_db):
         update_overall_status(redis_db, swap_id, status="Error", message=error_message)
         return False
 
+def get_base_og_data(title_suffix=""):
+    base_title = "NTU Add-Drop Automator"
+    return {
+        "title": f"{base_title}{' - ' + title_suffix if title_suffix else ''}",
+        "description": "Helping NTU students automate add-drop swapping.",
+        "image": "https://ntu-add-drop-automator.site/static/thumbnail.jpg",
+        "url": "https://ntu-add-drop-automator.site/",
+        "type": "website"
+    }
+
 @app.get('/', response_class=HTMLResponse)
 async def index(request: Request, redis_db=Depends(get_redis)):
     # Open Graph metadata
-    og_data = {
-        "title": "NTU Add Drop Automator",
-        "description": "Helping NTU students automate add drop swapping.",
-        "image": "https://ntu-add-drop-automator.site/thumbnail.jpg",
-        "url": "https://ntu-add-drop-automator.site/"
-    }
+    og_data = get_base_og_data("Home")
 
     # Check if the current month is January or August
     now = datetime.now()
@@ -288,6 +293,9 @@ async def input_index(
     password: str = Form(...),
     num_modules: int = Form(...)
 ):
+    # Open Graph metadata
+    og_data = get_base_og_data("Input Index")
+
     if not username or not password:
         raise HTTPException(status_code=400, detail="Invalid login credentials")
     
@@ -303,7 +311,8 @@ async def input_index(
         "input_index.html",
         {
             "request": request,
-            "num_modules": num_modules
+            "num_modules": num_modules,
+            "og_data": og_data
         }
     )
 
@@ -317,11 +326,14 @@ async def render_swap_status(request: Request, swap_id: str, redis_db=Depends(ge
     password = request.session.get("password")
     
     if not validate_login(username, password):
+        # Open Graph metadata
+        og_data = get_base_og_data("Error")
         return templates.TemplateResponse(
             "error.html",
             {
                 "request": request,  # Also add the request object
-                "message": "You are not logged in. Please log in to continue."
+                "message": "You are not logged in. Please log in to continue.",
+                "og_data": og_data
             }
         )
 
@@ -337,6 +349,7 @@ async def render_swap_status(request: Request, swap_id: str, redis_db=Depends(ge
         }
 
     # Return the template with parsed data
+    og_data = get_base_og_data("Swap Status")
     return templates.TemplateResponse(
         "swap_status.html",
         {
@@ -345,6 +358,7 @@ async def render_swap_status(request: Request, swap_id: str, redis_db=Depends(ge
             "status": status_data["status"],
             "details": status_data["details"],
             "message": status_data["message"],
+            "og_data": og_data
         }
     )
 
