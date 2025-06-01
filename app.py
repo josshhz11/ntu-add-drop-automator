@@ -245,6 +245,7 @@ def login_to_portal(driver, username, password, swap_id, redis_db):
 def get_base_og_data(title_suffix=""):
     base_title = "NTU Add-Drop Automator"
     return {
+        "base_title": base_title,
         "title": f"{base_title}{' - ' + title_suffix if title_suffix else ''}",
         "description": "Helping NTU students automate add-drop swapping.",
         "image": "https://ntu-add-drop-automator.site/static/thumbnail.jpg",

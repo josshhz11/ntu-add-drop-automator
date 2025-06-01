@@ -6,6 +6,7 @@
     <title>Swap Status - NTU Add Drop Automator</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', path='NTU-Add-Drop-Automator.Logo.png') }}">
     <!-- Open Graph Meta Tags -->
+    <meta property="og:base_title" content="{{ og_data.base_title }}" />
     <meta property="og:title" content="{{ og_data.title }}" />
     <meta property="og:description" content="{{ og_data.description }}" />
     <meta property="og:image" content="https://ntu-add-drop-automator.site/static/thumbnail.jpg" />
@@ -22,7 +23,7 @@
             <div class="title-container">
                 <img src="https://seeklogo.com/images/N/nanyang-technological-university-logo-99C7E42213-seeklogo.com.png" 
                      alt="NTU Logo" class="ntu-logo">
-                <h1>NTU Add Drop Automator</h1>
+                <h1>>{{ og_data.base_title }}</h1>
             </div>
             <p class="description">
                 This tool helps you to periodically check vacancies for your modules you wish to swap every 5 minutes, up to a maximum of 2 hours. If slots are found, they will be automatically swapped for you. If not, it will keep running till we find a slot, or 2 hours is up. Then you will have to sign in again.
@@ -33,6 +34,12 @@
                 <br><br>
                 This tool is fully secure and no user credentials are stored or accessible.
             </p>
+            <!-- Feedback button -->
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdniXT-UR1MLjssAkZLvJunD2lCgfckdjMd7iamOFD-cjCMKg/viewform" 
+                target="_blank" 
+                class="feedback-button">
+                Provide Feedback Here!
+            </a>
         </div>
 
         <!-- Right container -->
