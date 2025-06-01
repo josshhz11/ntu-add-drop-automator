@@ -24,16 +24,38 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0 auto;
 }
 
-/* Equal height columns - this is the key fix */
+/* Enhanced equal height columns */
 .row.shadow-sm {
     display: flex;
     min-height: 650px;
+    height: 100%; 
 }
 
 .row.shadow-sm > [class*='col-'] {
     display: flex;
     flex-direction: column;
     height: 100%;
+    flex: 1; /* Make columns take equal space */
+}
+
+/* Make inner containers fill their parent columns */
+.col-md-6 > div:not(.d-flex.gap-2) {
+    flex-grow: 1;
+}
+
+/* Fix the content inside panels to fill available space */
+.col-md-6.bg-light .card,
+.col-md-6.bg-light .card-body,
+.col-md-6.bg-white .card,
+.col-md-6.bg-white .card-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Fix elements to fully expand */
+.flex-grow-1 {
+    flex: 1 0 auto !important;
 }
 
 /* Button styles */
@@ -126,10 +148,20 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #fff;
 }
 
+/* Ensure forms fill the available space */
+form.d-flex.flex-column.h-100,
+form.d-flex.flex-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
 /* When there are multiple modules, ensure scrolling works */
 #modulesContainer {
-    max-height: 500px;
+    flex: 1 1 auto;
     overflow-y: auto;
+    min-height: 300px; /* Minimum height before scrolling */
+    max-height: calc(100vh - 350px); /* Responsive maximum height */
     padding-right: 5px;
 }
 
@@ -165,6 +197,22 @@ h1, h2, h3, h4, h5, h6 {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
+}
+
+/* Make sure buttons stick to bottom */
+.mt-auto {
+    margin-top: auto !important;
+}
+
+/* Fix right panel content alignment */
+.col-md-6.bg-light {
+    padding: 1.5rem !important;
+}
+
+.col-md-6.bg-light > div:first-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Media queries for responsiveness */
@@ -233,8 +281,10 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Make scrollable containers pretty */
 #status-container {
-    max-height: 400px;
+    flex: 1 1 auto;
     overflow-y: auto;
+    min-height: 300px;
+    max-height: calc(100vh - 350px);
     padding-right: 5px;
 }
 
