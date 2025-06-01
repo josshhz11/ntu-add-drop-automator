@@ -52,14 +52,19 @@
                     </div>
                 </div>
 
-                <!-- Feedback Button -->
-                <button class="btn btn-primary w-100" 
-                        onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSdniXT-UR1MLjssAkZLvJunD2lCgfckdjMd7iamOFD-cjCMKg/viewform', '_blank')">
-                    <i class="bi bi-chat-dots me-2"></i>Provide Feedback
-                </button>
+                <!-- Two buttons side by side -->
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" 
+                            onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSdniXT-UR1MLjssAkZLvJunD2lCgfckdjMd7iamOFD-cjCMKg/viewform', '_blank')">
+                        <i class="bi bi-chat-dots me-2"></i>Provide Feedback
+                    </button>
+                    <a href="/privacy-policy" class="btn btn-outline-secondary flex-grow-1">
+                        <i class="bi bi-shield-check me-2"></i>Privacy Policy
+                    </a>
+                </div>
             </div>
 
-            <!-- Right Panel -->
+            <!-- Right Panel - keep all this content the same -->
             <div class="col-md-6 bg-light p-4 d-flex flex-column">
                 {% if message %}
                     <div class="alert alert-info">{{ message }}</div>

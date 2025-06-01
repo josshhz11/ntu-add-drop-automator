@@ -253,6 +253,19 @@ def get_base_og_data(title_suffix=""):
         "type": "website"
     }
 
+@app.get('/privacy-policy', response_class=HTMLResponse)
+async def privacy_policy(request: Request):
+    """
+    Renders the privacy policy page.
+    """
+    # Open Graph metadata
+    og_data = get_base_og_data("Privacy Policy")
+    
+    return templates.TemplateResponse(
+        "privacypolicy.html",
+        {"request": request, "og_data": og_data}
+    )
+
 @app.get('/', response_class=HTMLResponse)
 async def index(request: Request, redis_db=Depends(get_redis)):
     # Open Graph metadata
