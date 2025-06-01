@@ -198,3 +198,65 @@ h1, h2, h3, h4, h5, h6 {
         margin-bottom: 0.5rem;
     }
 }
+
+/* Status indicator styling */
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+.bg-success {
+    background-color: var(--success-color) !important;
+}
+
+.bg-danger {
+    background-color: var(--danger-color) !important;
+}
+
+/* Status item styling */
+.status-item {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.status-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Make scrollable containers pretty */
+#status-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+#status-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#status-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#status-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+/* Text styles */
+.text-capitalize {
+    text-transform: capitalize;
+}
+
+.fw-bold {
+    font-weight: 600;
+}
