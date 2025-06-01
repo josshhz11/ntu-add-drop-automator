@@ -1,4 +1,3 @@
-/* filepath: c:\Users\joshua\OneDrive\Documents\ntu-add-drop-automator\static\css\styles.css */
 :root {
     --primary-color: #1B4B75;
     --secondary-color: #2C6BA5;
@@ -25,8 +24,16 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0 auto;
 }
 
-.row {
+/* Equal height columns - this is the key fix */
+.row.shadow-sm {
+    display: flex;
     min-height: 650px;
+}
+
+.row.shadow-sm > [class*='col-'] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 /* Button styles */
@@ -108,21 +115,67 @@ h1, h2, h3, h4, h5, h6 {
 .module-input-group {
     background-color: var(--light-gray);
     border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     transition: all 0.2s ease;
 }
 
 .module-input-group:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background-color: #fff;
+}
+
+/* When there are multiple modules, ensure scrolling works */
+#modulesContainer {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+#modulesContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+#modulesContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#modulesContainer::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+/* Button and link styling */
+.btn {
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+}
+
+.btn-outline-secondary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
 }
 
 /* Media queries for responsiveness */
 @media (max-width: 768px) {
-    .row {
+    .row.shadow-sm {
+        flex-direction: column;
         min-height: auto;
     }
     
     .col-md-6 {
-        min-height: 450px;
+        min-height: auto;
     }
     
     h1, h2 {
@@ -136,36 +189,12 @@ h1, h2, h3, h4, h5, h6 {
     .main-container {
         padding: 1rem;
     }
-}
-
-.row {
-    display: flex;
-    flex-wrap: wrap;
-}
-
-.row > [class*='col-'] {
-    display: flex;
-    flex-direction: column;
-}
-
-.card {
-    flex: 1;
-}
-
-/* Adjust button styles */
-.btn {
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-outline-secondary {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-}
-
-.btn-outline-secondary:hover {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
+    
+    .d-flex.gap-2 {
+        flex-direction: column;
+    }
+    
+    .btn {
+        margin-bottom: 0.5rem;
+    }
 }
