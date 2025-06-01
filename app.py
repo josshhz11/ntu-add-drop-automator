@@ -435,6 +435,7 @@ async def swap_index(
         thread.start()
         
         # Render `swap_status.html` immediately
+        og_data = get_base_og_data("Swap Status")
         return templates.TemplateResponse(
             "swap_status.html",
             {
@@ -443,6 +444,7 @@ async def swap_index(
                 "status": status_data["status"],
                 "details": status_data["details"],
                 "message": status_data["message"],
+                "og_data": og_data
             }
         )
     
