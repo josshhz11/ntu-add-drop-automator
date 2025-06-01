@@ -1,6 +1,6 @@
 # NTU Add-Drop Automator
 
-![NTU Logo](static/Nanyang_Technological_University-Logo.png)
+![NTU Add-Drop Automator Logo](static/NTU-Add-Drop-Automator-Logo.png)
 
 ## Problem Statement
 To help NTU students arrange their modules and classes efficiently during the add-drop period at the start of each semester (January, August).
