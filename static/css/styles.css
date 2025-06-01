@@ -1,207 +1,139 @@
-/* General styles for body */
-body {
-    font-family: 'Inter', 'Roboto', Times, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa;
-    color: #212529; /* Neutral text color */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
+/* filepath: c:\Users\joshua\OneDrive\Documents\ntu-add-drop-automator\static\css\styles.css */
+:root {
+    --primary-color: #1B4B75;
+    --secondary-color: #2C6BA5;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-gray: #f8f9fa;
+    --dark-gray: #6c757d;
 }
 
-/* Main container for all pages */
+body {
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    background-color: #f5f7fa !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+}
+
+/* Main container styling */
 .main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.row {
+    min-height: 650px;
+}
+
+/* Button styles */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+    transform: translateY(-1px);
+}
+
+/* Card styles */
+.card {
+    height: 100%;
     display: flex;
-    width: 70%;
-    height: auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
-    border-radius: 8px;
+    flex-direction: column;
+}
+
+.card-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
     overflow: hidden;
 }
 
-/* Style for the title container */
-.title-container {
-    display: flex; /* Arrange the logo and title horizontally */
-    align-items: center; /* Center vertically */
-    gap: 20px; /* Increase space between the logo and the text */
-    margin-bottom: 20px; /* Add spacing below the title */
-}
-
-/* Style for the NTU logo */
-.ntu-logo {
-    width: 50px; /* Adjust width of the logo */
-    height: auto; /* Maintain aspect ratio */
-    object-fit: contain; /* Ensure the logo fits within the box */
-}
-
-/* Left container styles */
-.left-container {
-    width: 50%;
-    padding: 30px;
-    background-color: #f9fafb;
-    box-sizing: border-box; /* Ensure padding is included in width calculation */
-}
-
-.left-container h1 {
-    font-size: 28px;
-    margin-bottom: 20px;
-    color: #333;
-    word-wrap: break-word; /* Prevent long words from spilling */
-}
-
-.left-container .description {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #666;
-    word-wrap: break-word; /* Prevent overflow of text */
-}
-
-/* Right container styles */
-.right-container {
-    width: 50%;
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    border-left: 1px solid #e0e0e0;
-    text-align: center;
-    box-sizing: border-box; /* Ensure padding is included in width calculation */
+.custom-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 /* Form styles */
-.form-group {
-    margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-    word-wrap: break-word; /* Prevent long inputs or labels from overflowing */
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
 }
 
-label {
-    margin-bottom: 5px;
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-    text-align: left;
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(27, 75, 117, 0.25);
 }
 
-input[type="text"],
-input[type="password"],
-input[type="number"] {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-    box-sizing: border-box;
+.input-group-text {
+    background-color: var(--light-gray);
+    border-color: #dee2e6;
 }
 
-input[type="text"]:focus,
-input[type="password"]:focus,
-input[type="number"]:focus {
-    border-color: #007bff;
-    outline: none;
+/* Status badge styling */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50rem;
+    font-size: 0.85rem;
+    background-color: var(--light-gray);
+    color: var(--dark-gray);
 }
 
-button.submit-button,
-button.button {
-    width: 100%;
-    padding: 10px 0;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 10px;
+/* Module input groups */
+.module-input-group {
+    background-color: var(--light-gray);
+    border-radius: 10px;
+    transition: all 0.2s ease;
 }
 
-button.submit-button:hover,
-button.button:hover {
-    background-color: #0056b3;
+.module-input-group:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-button:disabled {
-    background-color: #ddd;
-    cursor: not-allowed;
-}
-
-/* Module-specific styling */
-.module-input-group,
-.status-item {
-    margin-bottom: 20px;
-    text-align: left;
-}
-
-.module-input-group h4,
-.status-item h3 {
-    margin-bottom: 10px;
-    color: #007bff;
-    font-size: 16px;
-}
-
-/* Alert message styles */
-.alert {
-    color: red;
-    font-size: 12px;
-    margin-bottom: 15px;
-}
-
-/* Centering the button container */
-#button-container {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-/* Example: replicate your h2 styling in a class */
-.h2-like {
-    font-size: 2em;        /* match your existing h2 size */
-    line-height: 1.2;      /* match h2 line-height */
-    font-weight: bold;     /* match h2 weight */
-    margin: 0.75em 0;      /* or 0 if you want no extra spacing */
-    display: block;        /* so each line is on its own block if desired */
-    /* include any other h2 styles you need here */
-}
-
-/* Responsive styles for smaller screens */
-@media screen and (max-width: 768px) {
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+    .row {
+        min-height: auto;
+    }
+    
+    .col-md-6 {
+        min-height: 450px;
+    }
+    
+    h1, h2 {
+        font-size: 1.5rem;
+    }
+    
+    .form-control {
+        font-size: 1rem;
+    }
+    
     .main-container {
-        flex-direction: column; /* Stack containers vertically */
-        width: 90%; /* Adjust width to fit smaller screens */
-    }
-
-    .left-container,
-    .right-container {
-        width: 100%; /* Full width for both containers */
-        padding: 20px; /* Adjust padding for smaller screens */
-    }
-
-    .right-container {
-        border-left: none; /* Remove the vertical border */
-        border-top: 1px solid #e0e0e0; /* Add a horizontal border between sections */
-    }
-
-    .left-container .description {
-        font-size: 12px; /* Reduce font size for smaller screens */
-        line-height: 1.4; /* Reduce line height for compactness */
-        word-wrap: break-word;
-    }
-
-    input[type="text"],
-    input[type="password"],
-    input[type="number"] {
-        font-size: 12px; /* Adjust font size for smaller screens */
-        padding: 8px; /* Reduce padding for compactness */
-        word-wrap: break-word;
-    }
-
-    button.submit-button {
-        font-size: 12px; /* Adjust button text size */
-        padding: 8px 0; /* Adjust padding */
-        word-wrap: break-word;
+        padding: 1rem;
     }
 }

@@ -13,6 +13,8 @@
     <meta property="og:url" content="{{ og_data.url }}" />
     <meta property="og:type" content="website" />
     
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', path='css/styles.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -25,55 +27,89 @@
         gtag('config', 'G-Y389FX2T71');
     </script>
 </head>
-<body>
-    <div class="main-container">
-        <!-- Left container -->
-        <div class="left-container">
-            <div class="title-container">
-                <img src="https://seeklogo.com/images/N/nanyang-technological-university-logo-99C7E42213-seeklogo.com.png" 
-                     alt="NTU Logo" class="ntu-logo">
-                <h1>{{ og_data.base_title }}</h1>
-            </div>
-            <p class="description">
-                This tool helps you to periodically check vacancies for your modules you wish to swap every 5 minutes, up to a maximum of 2 hours. If slots are found, they will be automatically swapped for you. If not, it will keep running till we find a slot, or 2 hours is up. Then you will have to sign in again.
-                <br><br>
-                This tool allows for choosing multiple desired slots (if changing due to time slots), and you simply have to write all the indexes separated by commas (i.e. 80271, 80272, 80273).
-                <br><br>
-                <strong>If you're running into errors on the page, try closing this tab and trying again.</strong>
-                <br>
-                <strong>PS: Best used on a computer!</strong>
-                <br><br>
-                This tool is fully secure and no user credentials are stored or accessible.
-            </p>
-            <!-- Feedback button -->
-            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdniXT-UR1MLjssAkZLvJunD2lCgfckdjMd7iamOFD-cjCMKg/viewform" 
-                target="_blank" 
-                class="feedback-button">
-                Provide Feedback Here!
-            </a>
-        </div>
+<body class="bg-light d-flex align-items-center justify-content-center">
+    <div class="container py-5 main-container">
+        <div class="row shadow-sm rounded overflow-hidden">
+            <!-- Left Panel -->
+            <div class="col-md-6 bg-white p-4 d-flex flex-column">
+                <div class="d-flex align-items-center mb-4">
+                    <img src="https://seeklogo.com/images/N/nanyang-technological-university-logo-99C7E42213-seeklogo.com.png" 
+                         alt="NTU Logo" class="me-3" style="height: 40px;">
+                    <h2 class="mb-0">{{ og_data.base_title }}</h2>
+                </div>
+                
+                <div class="card border-0 bg-light mb-4 flex-grow-1">
+                    <div class="card-body">
+                        <p class="text-muted">
+                            This tool helps you to periodically check vacancies for your modules you wish to swap every 5 minutes, up to a maximum of 2 hours. If slots are found, they will be automatically swapped for you. If not, it will keep running till we find a slot, or 2 hours is up. Then you will have to sign in again.
+                            <br><br>
+                            This tool allows for choosing multiple desired slots (if changing due to time slots), and you simply have to write all the indexes separated by commas (i.e. 80271, 80272, 80273).
+                            <br><br>
+                            <strong>If you're running into errors on the page, try closing this tab and trying again.</strong>
+                            <br><br>
+                            This tool is fully secure and no user credentials are stored or accessible.
+                        </p>
+                    </div>
+                </div>
 
-        <!-- Right container -->
-        <div class="right-container">
-            {% if message %}
-                <p class="alert">{{ message }}</p>
-            {% endif %}
-            <form action="/input-index" method="post">
-                <div class="form-group">
-                    <label for="username"><b>Username:</b></label>
-                    <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus>
+                <!-- Feedback Button -->
+                <button class="btn btn-primary w-100" 
+                        onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSdniXT-UR1MLjssAkZLvJunD2lCgfckdjMd7iamOFD-cjCMKg/viewform', '_blank')">
+                    <i class="bi bi-chat-dots me-2"></i>Provide Feedback
+                </button>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="col-md-6 bg-light p-4 d-flex flex-column">
+                {% if message %}
+                    <div class="alert alert-info">{{ message }}</div>
+                {% endif %}
+
+                <div class="card border-0 shadow-sm flex-grow-1">
+                    <div class="card-body p-4">
+                        <h4 class="card-title mb-4">Login Details</h4>
+                        
+                        <form action="/input-index" method="post" class="d-flex flex-column h-100">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control" id="username" name="username" 
+                                           placeholder="Enter your username" required autofocus>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                    <input type="password" class="form-control" id="password" name="password" 
+                                           placeholder="Enter your password" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="numModules" class="form-label">Number of Modules</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-book"></i></span>
+                                    <input type="number" class="form-control" id="numModules" name="num_modules" 
+                                           min="1" placeholder="Enter number of modules" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-arrow-right-circle me-2"></i>Input Indexes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="password"><b>Password:</b></label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                </div>
-                <div class="form-group">
-                    <label for="numModules"><b>Number of Modules:</b></label>
-                    <input type="number" id="numModules" name="num_modules" min="1" placeholder="Enter number of modules" required>
-                </div>
-                <button type="submit" class="submit-button">Input Indexes</button>
-            </form>
+            </div>
         </div>
     </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
