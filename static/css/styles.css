@@ -310,3 +310,93 @@ form.d-flex.flex-column {
 .fw-bold {
     font-weight: 600;
 }
+
+/* Additional styling for offline.html */
+/* Offline page styling */
+.offline-status-container {
+    background-color: white;
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    max-width: 90%;
+    transition: transform 0.3s ease;
+}
+
+.offline-status-container:hover {
+    transform: translateY(-5px);
+}
+
+.offline-icon-container {
+    font-size: 4rem;
+    color: var(--primary-color);
+    height: 100px;
+    width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(27, 75, 117, 0.1);
+    margin: 0 auto;
+}
+
+.countdown-container {
+    margin: 30px 0;
+}
+
+.countdown-text {
+    font-size: 1.1rem;
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+
+.date-badge {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+}
+
+.date-badge .month {
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.date-badge .year {
+    font-size: 1.2rem;
+    opacity: 0.9;
+}
+
+/* Improve text styles */
+#status-message h3 {
+    font-weight: 700;
+    font-size: 1.8rem;
+    color: var(--primary-color);
+}
+
+#status-message p {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+/* Notification button styling */
+.btn-outline-primary {
+    border-width: 2px;
+    font-weight: 500;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Make the status message area fill the available space */
+#status-message {
+    flex: 1;
+    min-height: 400px;
+}
