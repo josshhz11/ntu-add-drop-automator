@@ -366,6 +366,7 @@ form.d-flex.flex-column {
 
 .date-badge .year {
     font-size: 1.2rem;
+    font-weight: 700;
     opacity: 0.9;
 }
 
