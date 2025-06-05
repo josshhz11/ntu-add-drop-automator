@@ -65,13 +65,46 @@
                 </div>
             </div>
 
-            <!-- Right Panel - keep all this content the same -->
+            <!-- Right Panel -->
             <div class="col-md-6 bg-light p-4 d-flex flex-column">
-                <div id="status-message">
-                    <h2>NTU Add Drop is currently offline.</h2>
-                    <h2>Stay tuned for the next add drop period in {{ eligible_month }} {{ eligible_year }}!</h2>
+                <div id="status-message" class="d-flex flex-column align-items-center justify-content-center h-100 text-center">
+                    <div class="offline-status-container">
+                        <div class="offline-icon-container mb-4">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                        <h3 class="text-primary">NTU Add Drop is currently offline</h3>
+                        <div class="countdown-container mt-4">
+                            <p class="countdown-text">Next add drop period:</p>
+                            <div class="date-badge">
+                                <span class="month">{{ eligible_month }}</span>
+                                <span class="year">{{ eligible_year }}</span>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-muted">We'll be back when the next add/drop period begins. Sign up for notifications below to be alerted when we're back online.</p>
+                        <button class="btn btn-outline-primary mt-3" onclick="subscribeToNotifications()">
+                            <i class="bi bi-bell me-2"></i>Notify Me When Available
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            <!-- Add this script at the end of the body tag -->
+            <script>
+                function subscribeToNotifications() {
+                    // Get email from prompt
+                    const email = prompt("Please enter your email to receive notifications:");
+                    
+                    if (email && /^\S+@\S+\.\S+$/.test(email)) {
+                        // Here you would typically send this to your backend
+                        alert("Thank you! We'll notify you when Add/Drop becomes available.");
+                        
+                        // You could implement actual subscription functionality here
+                        // For now this is just a UI demonstration
+                    } else if (email) {
+                        alert("Please enter a valid email address.");
+                    }
+                }
+            </script>
         </div>
     </div>
 
