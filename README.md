@@ -10,7 +10,7 @@ Nanyang Technological University students have always faced the issue of having 
 This web application provides a solution to this problem: by making use of web agents automate the process of logging into the school website to attempt swaps for course indexes.
 
 ## The Solution
-A full-stack web application used by 550+ NTU students to automate course swapping using web agents, reducing manual slot checking by 40%, with a tech stack comprising FastAPI, vanilla HTML, CSS, and JS for web design, and Docker for deployment on Render.
+A full-stack web application used by 1400+ NTU students to automate course swapping using web agents, reducing manual slot checking by 40%, with a tech stack comprising FastAPI, vanilla HTML, CSS, and JS for web design, containerized using Docker for deployment on Render.
 
 How this application works is that it makes use of web agents to automatically log into the school portal every five minutes, to check and attempt swaps for course indexes. If there are no slots, the web agent will try again every five minutes, until a swap is found or 2 hours is up, whichever is sooner.
 
@@ -37,6 +37,6 @@ As this app handles students' sensitive user credentials for the school portal, 
 If you do find any additional security concerns, feel free to reach out to me below.
 
 ## Feedback
-Feel free to reach out if you have any feedback or are running into any issues on Telegram [@uneasymoneysniper](t.me/uneasymoneysniper).
+Feel free to reach out if you have any feedback or are running into any issues on this Google Form [here](https://docs.google.com/forms/d/e/1FAIpQLSdniXT-UR1MLjssAkZLvJunD2lCgfckdjMd7iamOFD-cjCMKg/viewform).
 
-I'm also open to any collaborations! Especially with the frontend haha as it's not very nice-looking.
+I'm also open to any collaborations! Especially with the frontend haha as it's not very nice-looking (especially if anyone's interested in using React/Next.js, etc. to make the site more aesthetic).
