@@ -54,8 +54,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # 4. Remove any existing ChromeDriver to avoid conflicts
 RUN rm -f /usr/local/bin/chromedriver
 
-# 5. Install ChromeDriver matching the installed Chrome version (137.0.7151.55)
-RUN wget https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.55/linux64/chromedriver-linux64.zip -O /tmp/chromedriver.zip \
+# 5. Install ChromeDriver matching the installed Chrome version (137.0.7151.119)
+RUN wget https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.119/linux64/chromedriver-linux64.zip -O /tmp/chromedriver.zip \
     && unzip /tmp/chromedriver.zip -d /tmp/ \
     && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
     && chmod +x /usr/local/bin/chromedriver \
