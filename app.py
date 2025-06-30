@@ -80,7 +80,7 @@ chrome_options.add_argument("--disable-software-rasterizer")  # Prevents crashes
 chrome_options.add_argument("--window-size=1920x1080")  # Ensures proper rendering
 
 # Persistent ChromeDriver Pool
-MAX_DRIVERS = 1  # Number of preloaded drivers
+MAX_DRIVERS = 5  # Number of preloaded drivers
 driver_pool = []
 pool_lock = threading.Lock()
 
@@ -272,8 +272,8 @@ async def index(request: Request, redis_db=Depends(get_redis)):
     og_data = get_base_og_data("Home")
 
     # Check if the current month is January or August
-    now = datetime.now()
-    current_month = now.month
+    # now = datetime.now()
+    # current_month = now.month
 
     # If not January (1) or August (8), render the offline page
     # if current_month not in (1, 8):

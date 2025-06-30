@@ -15,3 +15,9 @@ asyncio
 python-multipart
 itsdangerous
 starlette>=0.14.0
+pytest
+pytest-mock
+pytest-cov
+pytest-asyncio
+httpx
+fakeredis
