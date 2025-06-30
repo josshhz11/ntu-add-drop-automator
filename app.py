@@ -80,7 +80,7 @@ chrome_options.add_argument("--disable-software-rasterizer")  # Prevents crashes
 chrome_options.add_argument("--window-size=1920x1080")  # Ensures proper rendering
 
 # Persistent ChromeDriver Pool
-MAX_DRIVERS = 5  # Number of preloaded drivers
+MAX_DRIVERS = 1  # Number of preloaded drivers
 driver_pool = []
 pool_lock = threading.Lock()
 
