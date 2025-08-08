@@ -49,28 +49,30 @@ RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http:
 # 3. Install Google Chrome Stable
 RUN apt-get update && apt-get install -y --no-install-recommends \
     google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && echo "Installed Chrome version: $(google-chrome --version)"
 
 # 4. Remove any existing ChromeDriver to avoid conflicts
 RUN rm -f /usr/local/bin/chromedriver
 
 # 5. Get Chrome version and install matching ChromeDriver
-RUN CHROME_VERSION=$(google-chrome --version | awk '{ print $3 }' | cut -d'.' -f1) \
-    && wget -q -O - https://storage.googleapis.com/chrome-for-testing-public/LATEST_RELEASE_${CHROME_VERSION} > /tmp/chromedriver_version.txt \
-    && CHROMEDRIVER_VERSION=$(cat /tmp/chromedriver_version.txt) \
-    && echo "Installing ChromeDriver version: ${CHROMEDRIVER_VERSION} for Chrome version: ${CHROME_VERSION}" \
-    && wget -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" \
-    && unzip /tmp/chromedriver.zip -d /tmp/ \
-    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
-    && chmod +x /usr/local/bin/chromedriver \
-    && rm -rf /tmp/chromedriver-linux64 /tmp/chromedriver.zip /tmp/chromedriver_version.txt
-
-# 5. Install ChromeDriver matching the installed Chrome version (139.0.7258.66)
-# RUN wget https://storage.googleapis.com/chrome-for-testing-public/139.0.7258.66/linux64/chromedriver-linux64.zip -O /tmp/chromedriver.zip \
+# RUN CHROME_VERSION=$(google-chrome --version | awk '{ print $3 }' | cut -d'.' -f1) \
+#     && wget -q -O - https://storage.googleapis.com/chrome-for-testing-public/LATEST_RELEASE_${CHROME_VERSION} > /tmp/chromedriver_version.txt \
+#     && CHROMEDRIVER_VERSION=$(cat /tmp/chromedriver_version.txt) \
+#     && echo "Installing ChromeDriver version: ${CHROMEDRIVER_VERSION} for Chrome version: ${CHROME_VERSION}" \
+#     && wget -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" \
 #     && unzip /tmp/chromedriver.zip -d /tmp/ \
 #     && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
 #     && chmod +x /usr/local/bin/chromedriver \
-#     && rm -rf /tmp/chromedriver-linux64 /tmp/chromedriver.zip
+#     && rm -rf /tmp/chromedriver-linux64 /tmp/chromedriver.zip /tmp/chromedriver_version.txt
+
+# 5. Install ChromeDriver matching the installed Chrome version (139.0.7258.66)
+RUN wget https://storage.googleapis.com/chrome-for-testing-public/139.0.7258.66/linux64/chromedriver-linux64.zip -O /tmp/chromedriver.zip \
+    && unzip /tmp/chromedriver.zip -d /tmp/ \
+    && mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
+    && chmod +x /usr/local/bin/chromedriver \
+    && rm -rf /tmp/chromedriver-linux64 /tmp/chromedriver.zip \
+    && echo "Installed ChromeDriver version: $(chromedriver --version)"
 
 # 6. Verify ChromeDriver version during build
 RUN chromedriver --version
