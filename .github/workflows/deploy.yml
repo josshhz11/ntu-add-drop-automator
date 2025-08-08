@@ -31,6 +31,9 @@ jobs:
         run: |
           ssh ${{ secrets.DO_SSH_USER }}@${{ secrets.DO_DROPLET_IP }} << 'EOF'
             cd /root/ntu-add-drop-automator
+            echo "REDIS_HOST=redis" > .env
+            echo "REDIS_PORT=6379" >> .env
+            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
             docker-compose down
             docker-compose build
             docker-compose up -d
