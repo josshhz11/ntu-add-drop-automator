@@ -2,8 +2,8 @@ services:
   app:
     build: .
     restart: unless-stopped
-    ports:
-      - "80:5000"
+    expose:
+      - "5000"
     depends_on:
       - redis
     environment:

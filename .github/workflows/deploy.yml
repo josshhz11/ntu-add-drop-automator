@@ -34,6 +34,11 @@ jobs:
             echo "REDIS_HOST=redis" > .env
             echo "REDIS_PORT=6379" >> .env
             echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
+
+            # Configure nginx
+            sudo cp nginx.conf /etc/nginx/sites-available/ntu-add-drop
+            sudo ln -sf /etc/nginx/sites-available/ntu-add-drop /etc/nginx/sites-enabled/
+            sudo rm -f /etc/nginx/sites-enabled/default
             
             # Stop any existing containers using port 80
             docker ps -q --filter "publish=80" | xargs -r docker stop
@@ -45,6 +50,11 @@ jobs:
             docker-compose build --no-cache
             docker-compose up -d
             
-            # Print container logs for debugging
+            # Print logs for debugging
+            echo "=== Docker Containers ==="
+            docker ps
+            echo "=== App Logs ==="
             docker-compose logs app
+            echo "=== Nginx Status ==="
+            sudo systemctl status nginx
           EOF
