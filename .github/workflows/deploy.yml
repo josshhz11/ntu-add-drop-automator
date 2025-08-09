@@ -30,6 +30,8 @@ jobs:
       - name: Restart application
         run: |
           ssh ${{ secrets.DO_SSH_USER }}@${{ secrets.DO_DROPLET_IP }} << 'EOF'
+            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" > /root/ntu-add-drop-automator/.env
+          
             cd /root/ntu-add-drop-automator
             
             # Stop existing containers
