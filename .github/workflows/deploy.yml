@@ -31,30 +31,23 @@ jobs:
         run: |
           ssh ${{ secrets.DO_SSH_USER }}@${{ secrets.DO_DROPLET_IP }} << 'EOF'
             cd /root/ntu-add-drop-automator
-            echo "REDIS_HOST=redis" > .env
-            echo "REDIS_PORT=6379" >> .env
-            echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
-
-            # Configure nginx
-            sudo cp nginx.conf /etc/nginx/sites-available/ntu-add-drop
-            sudo ln -sf /etc/nginx/sites-available/ntu-add-drop /etc/nginx/sites-enabled/
-            sudo rm -f /etc/nginx/sites-enabled/default
             
-            # Stop any existing containers using port 80
-            docker ps -q --filter "publish=80" | xargs -r docker stop
-            
-            # Remove old containers
+            # Stop existing containers
             docker-compose down --remove-orphans
             
-            # Build and start new containers
+            # Build and start containers
             docker-compose build --no-cache
             docker-compose up -d
             
-            # Print logs for debugging
+            # Configure Nginx
+            sudo cp nginx.conf /etc/nginx/sites-available/ntu-add-drop-automator
+            sudo ln -sf /etc/nginx/sites-available/ntu-add-drop-automator /etc/nginx/sites-enabled/
+            sudo rm -f /etc/nginx/sites-enabled/default
+            sudo nginx -t && sudo systemctl restart nginx
+            
+            # Print status
             echo "=== Docker Containers ==="
             docker ps
-            echo "=== App Logs ==="
-            docker-compose logs app
             echo "=== Nginx Status ==="
             sudo systemctl status nginx
           EOF
