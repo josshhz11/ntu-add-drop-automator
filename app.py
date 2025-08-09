@@ -64,7 +64,7 @@ def get_redis():
             socket_connect_timeout=5,
             retry_on_timeout=True
         )
-     except Exception as e:
+    except Exception as e:
         print(f"Redis connection error in get_redis(): {str(e)}")
         # Return a fake Redis implementation for development/testing
         return redis.StrictRedis(
