@@ -25,6 +25,17 @@ from starlette.middleware.sessions import SessionMiddleware
 import secrets
 import logging
 
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(),  # Log to console
+        logging.FileHandler('/app/debug.log')  # Log to file
+    ]
+)
+logger = logging.getLogger(__name__)
+
 def check_chrome_paths():
     try:
         chrome_path = subprocess.getoutput("which google-chrome")
@@ -54,9 +65,9 @@ def get_redis():
         redis_port = int(os.environ.get("REDIS_PORT", 6379))
         redis_password = os.environ.get("REDIS_PASSWORD", None)
 
-        print(f"Connecting to Redis at {redis_host}:{redis_port}")
-
-        return redis.StrictRedis(
+        logger.debug(f"Attempting Redis connection to {redis_host}:{redis_port}")
+        
+        client = redis.StrictRedis(
             host=redis_host,
             port=redis_port,
             password=redis_password,
@@ -65,14 +76,14 @@ def get_redis():
             socket_connect_timeout=5,
             retry_on_timeout=True
         )
+        
+        # Test the connection
+        client.ping()
+        logger.info("Redis connection successful")
+        return client
     except Exception as e:
-        print(f"Redis connection error in get_redis(): {str(e)}")
-        # Return a fake Redis implementation for development/testing
-        return redis.StrictRedis(
-            host="localhost",
-            port=6379,
-            decode_responses=True
-        )
+        logger.error(f"Redis connection error: {str(e)}")
+        raise
 
 # Explicitly fetch the secret key
 app = FastAPI()
@@ -173,15 +184,6 @@ async def test_redis_connection(redis_db=Depends(get_redis)):
             "redis_host": os.environ.get("REDIS_HOST"),
             "redis_port": os.environ.get("REDIS_PORT")
         }
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s: %(message)s',
-    handlers=[
-        logging.FileHandler('/app/debug.log'),
-        logging.StreamHandler()
-    ]
-)
 
 # Pydantic Models for Request Validation
 class SwapRequest(BaseModel):
