@@ -152,6 +152,27 @@ async def test_redis(redis_db=Depends(get_redis)):
     except Exception as e:
         return {"error": f"Redis connection error: {str(e)}"}
 
+# Add this function near your other route handlers
+@app.get("/test-redis-connection")
+async def test_redis_connection(redis_db=Depends(get_redis)):
+    try:
+        # Try to set and get a test value
+        redis_db.set("test_key", "test_value")
+        result = redis_db.get("test_key")
+        return {
+            "status": "success",
+            "redis_host": os.environ.get("REDIS_HOST"),
+            "redis_port": os.environ.get("REDIS_PORT"),
+            "test_value": result
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "redis_host": os.environ.get("REDIS_HOST"),
+            "redis_port": os.environ.get("REDIS_PORT")
+        }
+
 # Pydantic Models for Request Validation
 class SwapRequest(BaseModel):
     old_index: str
@@ -412,15 +433,25 @@ async def swap_index(
     Handles swap form submission, initiates the swap process, 
     stores status in Redis, and renders `swap_status.html`.
     """
-    form_data = await request.form() # Fetch all form data once
-
-    # Get credentials from session instead of form
-    username = request.session.get("username")
-    password = request.session.get("password")
-
-    number_of_modules = int(form_data.get("number_of_modules", 0))
-    
     try:
+        form_data = await request.form() # Fetch all form data once
+
+        # Debug prints
+        print(f"Username from session: {request.session.get('username')}")
+        print(f"Number of modules: {form_data.get('number_of_modules')}")
+
+        # Get credentials from session instead of form
+        username = request.session.get("username")
+        password = request.session.get("password")
+
+        if not username or not password:
+                raise HTTPException(status_code=400, detail="Invalid username-password pair or user is disabled.")
+
+        number_of_modules = int(form_data.get("number_of_modules", 0))
+
+        # More debug prints
+        print(f"Processing {number_of_modules} modules")
+    
         if number_of_modules <= 0:
             raise HTTPException(status_code=400, detail="Invalid number of modules")
         
@@ -476,6 +507,10 @@ async def swap_index(
         )
     
     except Exception as e:
+        print(f"Error in swap_index: {str(e)}")  # Debug print
+        print(f"Error type: {type(e)}")  # Print error type
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")  # Print full traceback
         raise HTTPException(status_code=500, detail=f"Swap initiation failed: {str(e)}")
 
 def perform_swaps(username, password, swap_items, swap_id, redis_db):
