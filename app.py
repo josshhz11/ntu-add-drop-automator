@@ -30,8 +30,8 @@ logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s %(levelname)s: %(message)s',
     handlers=[
-        logging.StreamHandler(),  # Log to console
-        logging.FileHandler('/app/debug.log')  # Log to file
+        logging.StreamHandler(),
+        logging.FileHandler('app.log')  # Changed from /app/debug.log
     ]
 )
 logger = logging.getLogger(__name__)
