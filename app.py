@@ -23,6 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 import subprocess
 from starlette.middleware.sessions import SessionMiddleware
 import secrets
+import logging
 
 def check_chrome_paths():
     try:
@@ -172,6 +173,15 @@ async def test_redis_connection(redis_db=Depends(get_redis)):
             "redis_host": os.environ.get("REDIS_HOST"),
             "redis_port": os.environ.get("REDIS_PORT")
         }
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.FileHandler('/app/debug.log'),
+        logging.StreamHandler()
+    ]
+)
 
 # Pydantic Models for Request Validation
 class SwapRequest(BaseModel):
