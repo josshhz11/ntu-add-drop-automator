@@ -49,9 +49,9 @@ load_dotenv()
 def get_redis():
     """Dependency Injection: Returns a Redis connection"""
     return redis.StrictRedis(
-        host=os.environ.get("REDIS_HOST", "red-cug9uopopnds7398r2kg"),
+        host=os.environ.get("REDIS_HOST", "redis"),
         port=int(os.environ.get("REDIS_PORT", 6379)),
-        password=os.environ.get("REDIS_PASSWORD", None),
+        password=os.environ.get("REDIS_PASSWORD", "password"),
         decode_responses=True
     )
 
