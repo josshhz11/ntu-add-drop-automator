@@ -49,9 +49,9 @@ load_dotenv()
 def get_redis():
     """Dependency Injection: Returns a Redis connection"""
     return redis.StrictRedis(
-        host=os.environ.get("REDIS_HOST", "redis"),
+        host=os.environ.get("REDIS_HOST", "ntu-add-drop-automator-app-1"),
         port=int(os.environ.get("REDIS_PORT", 6379)),
-        password=os.environ.get("REDIS_PASSWORD", "password"),
+        password=os.environ.get("REDIS_PASSWORD", None),
         decode_responses=True
     )
 
@@ -290,9 +290,17 @@ async def index(request: Request, redis_db=Depends(get_redis)):
 
     # Otherwise, if it is indeed in January or August, continue running the site as per normal.
     # Check for logout or timeout messages
-    logout_message = redis_db.get("logout_message")
-    if logout_message:
-        redis_db.delete("logout_message") # Remove it after retrieving
+    # Check for logout or timeout messages
+    try:    
+        logout_message = redis_db.get("logout_message")
+        if logout_message:
+            redis_db.delete("logout_message") # Remove it after retrieving
+    except redis.exceptions.ConnectionError:
+        print("Redis connection error - proceeding with no logout message")
+        logout_message = None
+    except Exception as e:
+        print(f"Unexpected Redis error: {str(e)}")
+        logout_message = None
     
     # Render index page with logout message (if any)
     return templates.TemplateResponse(
