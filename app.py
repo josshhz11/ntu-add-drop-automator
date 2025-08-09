@@ -48,12 +48,30 @@ load_dotenv()
 # Setup Redis connection
 def get_redis():
     """Dependency Injection: Returns a Redis connection"""
-    return redis.StrictRedis(
-        host=os.environ.get("REDIS_HOST", "ntu-add-drop-automator-app-1"),
-        port=int(os.environ.get("REDIS_PORT", 6379)),
-        password=os.environ.get("REDIS_PASSWORD", None),
-        decode_responses=True
-    )
+    try:
+        redis_host = os.environ.get("REDIS_HOST", "redis")
+        redis_port = int(os.environ.get("REDIS_PORT", 6379))
+        redis_password = os.environ.get("REDIS_PASSWORD", None)
+
+        print(f"Connecting to Redis at {redis_host}:{redis_port}")
+
+        return redis.StrictRedis(
+            host=redis_host,
+            port=redis_port,
+            password=redis_password,
+            decode_responses=True,
+            socket_timeout=5,
+            socket_connect_timeout=5,
+            retry_on_timeout=True
+        )
+     except Exception as e:
+        print(f"Redis connection error in get_redis(): {str(e)}")
+        # Return a fake Redis implementation for development/testing
+        return redis.StrictRedis(
+            host="localhost",
+            port=6379,
+            decode_responses=True
+        )
 
 # Explicitly fetch the secret key
 app = FastAPI()
@@ -301,6 +319,7 @@ async def index(request: Request, redis_db=Depends(get_redis)):
     except Exception as e:
         print(f"Unexpected Redis error: {str(e)}")
         logout_message = None
+
     
     # Render index page with logout message (if any)
     return templates.TemplateResponse(

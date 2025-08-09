@@ -10,7 +10,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=$"{REDIS_PASSWORD}"
     networks:
       - app-network
 
@@ -18,7 +18,7 @@ services:
     container_name: ntu-add-drop-automator-redis-1
     image: redis:latest
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: redis-server --requirepass $"{REDIS_PASSWORD}"
     expose:
       - "6379"
     volumes:
