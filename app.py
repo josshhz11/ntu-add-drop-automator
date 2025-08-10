@@ -70,7 +70,22 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 templates = Jinja2Templates(directory="templates")
 
 # Mount the static folder (like Flask's "static" folder)
-app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="static", html=True, check_dir=False), name="static")
+
+# Add middleware to enforce HTTPS
+@app.middleware("https")
+async def https_redirect(request, call_next):
+    response = await call_next(request)
+    if "static" in request.url.path:
+        response.headers["Content-Security-Policy"] = "upgrade-insecure-requests"
+    return response
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = "upgrade-insecure-requests"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 # Configure ChromeDriver settings
 CHROME_BINARY_PATH = "/usr/bin/google-chrome"

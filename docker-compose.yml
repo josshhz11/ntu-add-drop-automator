@@ -15,8 +15,8 @@ services:
       - app-network
     volumes:
       - ./logs:/app/logs
-      - ./static:/app/static  # Add this line to mount static files
-      - ./templates:/app/templates  # Add this line to mount templates
+      - ./static:/app/static:ro  # Add read-only flag
+      - ./templates:/app/templates:ro
 
   redis:
     container_name: ntu-add-drop-automator-redis-1
