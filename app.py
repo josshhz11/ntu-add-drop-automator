@@ -69,6 +69,9 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 # Setup Jinja2 Templates (Same as Flask's "templates" folder)
 templates = Jinja2Templates(directory="templates")
 
+# Mount the static folder (like Flask's "static" folder)
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+
 # Configure ChromeDriver settings
 CHROME_BINARY_PATH = "/usr/bin/google-chrome"
 CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
@@ -273,9 +276,6 @@ def update_all_module_statuses(redis_db, swap_id, swap_items, message, status="F
     update_overall_status(redis_db, swap_id, status=status, message=message)
 
 # OTHER HELPER FUNCTIONS
-
-# Mount the static folder (like Flask's "static" folder)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get('/thumbnail')
 async def serve_thumbnail():
