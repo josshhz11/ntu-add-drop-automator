@@ -91,9 +91,5 @@ COPY . /app
 # 10. Expose port 5000 for FastAPI
 EXPOSE 5000
 
-# 11. Static file rendering
-RUN chown -R nobody:nogroup /app/static
-USER nobody
-
-# 12. Command to start FastAPI with Uvicorn
+# 11. Command to start FastAPI with Uvicorn
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
