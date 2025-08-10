@@ -91,5 +91,18 @@ COPY . /app
 # 10. Expose port 5000 for FastAPI
 EXPOSE 5000
 
+RUN mkdir -p /app/static /app/logs /app/templates && \
+    chmod -R 755 /app/static && \
+    chmod -R 755 /app/logs && \
+    chmod -R 755 /app/templates
+
+# Copy your application code
+COPY . /app
+
+# Set permissions again after copying
+RUN chmod -R 755 /app/static && \
+    chmod -R 755 /app/logs && \
+    chmod -R 755 /app/templates
+
 # 11. Command to start FastAPI with Uvicorn
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]

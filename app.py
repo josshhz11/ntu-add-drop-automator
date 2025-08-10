@@ -70,7 +70,7 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 templates = Jinja2Templates(directory="templates")
 
 # Mount the static folder (like Flask's "static" folder)
-app.mount("/static", StaticFiles(directory="static", html=True, check_dir=False), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Add middleware to enforce HTTPS
 @app.middleware("https")
@@ -570,7 +570,7 @@ async def swap_index(
         password = request.session.get("password")
 
         if not username or not password:
-                raise HTTPException(status_code=400, detail="Invalid username-password pair or user is disabled.")
+            raise HTTPException(status_code=400, detail="Invalid username-password pair or user is disabled.")
 
         number_of_modules = int(form_data.get("number_of_modules", 0))
 

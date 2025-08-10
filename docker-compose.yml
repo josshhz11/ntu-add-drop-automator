@@ -15,7 +15,7 @@ services:
       - app-network
     volumes:
       - ./logs:/app/logs
-      - ./static:/app/static:ro  # Add read-only flag
+      - ./static:/app/static:ro  # read-only for static files
       - ./templates:/app/templates:ro
 
   redis:
