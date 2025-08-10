@@ -15,15 +15,20 @@ services:
       - app-network
     volumes:
       - ./logs:/app/logs
-      - ./debug.log:/app/debug.log
+      - ./app.log:/app/app.log
 
   redis:
     container_name: ntu-add-drop-automator-redis-1
-    image: redis/redis-stack:latest
+    image: redis:latest
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD}
-    expose:
-      - "6379"
+    healthcheck:  # Add health check
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "6379:6379"
     volumes:
       - redis-data:/data
     networks:
@@ -31,10 +36,9 @@ services:
 
 networks:
   app-network:
+    name: ntu_add_drop_network
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 
 volumes:
   redis-data:
+    name: ntu_add_drop_redis_data

@@ -24,6 +24,7 @@ import subprocess
 from starlette.middleware.sessions import SessionMiddleware
 import secrets
 import logging
+from fakeredis import FakeRedis
 
 # Configure logging
 logging.basicConfig(
@@ -60,30 +61,37 @@ load_dotenv()
 # Setup Redis connection
 def get_redis():
     """Dependency Injection: Returns a Redis connection"""
-    try:
-        redis_host = os.environ.get("REDIS_HOST", "redis")
-        redis_port = int(os.environ.get("REDIS_PORT", 6379))
-        redis_password = os.environ.get("REDIS_PASSWORD", None)
+    retries = 3
+    for attempt in range(retries):
+        try:
+            redis_host = os.environ.get("REDIS_HOST", "redis")
+            redis_port = int(os.environ.get("REDIS_PORT", 6379))
+            redis_password = os.environ.get("REDIS_PASSWORD")
 
-        logger.debug(f"Attempting Redis connection to {redis_host}:{redis_port}")
-        
-        client = redis.StrictRedis(
-            host=redis_host,
-            port=redis_port,
-            password=redis_password,
-            decode_responses=True,
-            socket_timeout=5,
-            socket_connect_timeout=5,
-            retry_on_timeout=True
-        )
-        
-        # Test the connection
-        client.ping()
-        logger.info("Redis connection successful")
-        return client
-    except Exception as e:
-        logger.error(f"Redis connection error: {str(e)}")
-        raise
+            logger.debug(f"Attempt {attempt + 1}: Connecting to Redis at {redis_host}:{redis_port}")
+            
+            client = redis.StrictRedis(
+                host=redis_host,
+                port=redis_port,
+                password=redis_password,
+                decode_responses=True,
+                socket_timeout=5,
+                socket_connect_timeout=5,
+                retry_on_timeout=True,
+                health_check_interval=30
+            )
+            
+            # Test the connection
+            client.ping()
+            logger.info("Redis connection successful")
+            return client
+        except Exception as e:
+            logger.error(f"Redis connection error (attempt {attempt + 1}): {str(e)}")
+            if attempt == retries - 1:
+                # On final attempt, return a dummy implementation
+                logger.warning("All Redis connection attempts failed. Using dummy implementation.")
+                return FakeRedis()
+            time.sleep(1)  # Wait before retrying
 
 # Explicitly fetch the secret key
 app = FastAPI()
