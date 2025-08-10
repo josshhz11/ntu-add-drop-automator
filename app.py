@@ -174,49 +174,171 @@ async def test_redis_connection(redis_db=Depends(get_redis)):
 ### CHROME DRIVERS
 
 # Persistent ChromeDriver Pool
-MAX_DRIVERS = 1  # Number of preloaded drivers
+MAX_DRIVERS = 8  # (4GB RAM - 1GB system) / 300MB per driver = ~8 drivers
 driver_pool = []
 pool_lock = threading.Lock()
+driver_semaphore = threading.Semaphore(MAX_DRIVERS)  # Control concurrent access
 
 def create_driver():
     """
     Create and return a new Selenium WebDriver instance.
     """
     try:
-        print("Starting ChromeDriver...")
-        service = Service("/usr/local/bin/chromedriver")  # Ensure correct path
+        logger.info("Starting new ChromeDriver instance...")
+        service = Service("/usr/local/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        print("ChromeDriver started successfully!")
+        logger.info("ChromeDriver started successfully!")
         return driver
     except Exception as e:
-        print(f"Error creating WebDriver: {str(e)}")
+        logger.error(f"Error creating WebDriver: {str(e)}")
         raise
 
-# Preload ChromeDriver instances
-for _ in range(MAX_DRIVERS):
-    driver_pool.append(create_driver())
+def check_driver_health(driver):
+    """
+    Check if driver is still responsive.
+    """
+    try:
+        # Try a simple command to verify driver is working
+        driver.execute_script("return navigator.userAgent")
+        return True
+    except Exception:
+        logger.warning("Driver health check failed")
+        return False
 
-def get_driver():
-    with pool_lock:
-        if driver_pool:
-            return driver_pool.pop()
-        else:
-            print("Creating new ChromeDriver instance...")
+def initialize_driver_pool():
+    """
+    Initialize the driver pool with MAX_DRIVERS instances.
+    """
+    logger.info(f"Initializing driver pool with {MAX_DRIVERS} drivers")
+    successful_drivers = 0
+    
+    for i in range(MAX_DRIVERS):
+        try:
+            driver = create_driver()
+            if driver:
+                driver_pool.append(driver)
+                successful_drivers += 1
+        except Exception as e:
+            logger.error(f"Failed to create driver {i+1}/{MAX_DRIVERS}: {e}")
+    
+    logger.info(f"Driver pool initialized with {successful_drivers}/{MAX_DRIVERS} drivers")
+    return successful_drivers
+
+def get_driver(timeout=30):
+    """
+    Get a driver from the pool or create a new one.
+    
+    Args:
+        timeout (int): Timeout in seconds to wait for available driver
+        
+    Returns:
+        WebDriver instance or None if timeout/error
+    """
+    # Try to acquire a semaphore with timeout
+    if not driver_semaphore.acquire(timeout=timeout):
+        logger.warning(f"Timed out after {timeout}s waiting for available driver")
+        return None
+    
+    try:
+        with pool_lock:
+            # Get a driver from the pool if available
+            if driver_pool:
+                driver = driver_pool.pop()
+                logger.debug(f"Got driver from pool, {len(driver_pool)}/{MAX_DRIVERS} remaining")
+                
+                # Check if driver is healthy
+                if check_driver_health(driver):
+                    return driver
+                else:
+                    logger.warning("Unhealthy driver from pool, creating new one")
+                    try:
+                        driver.quit()  # Close the unhealthy driver
+                    except:
+                        pass
+                    
+            # Create a new driver if pool is empty or driver was unhealthy
             try:
                 driver = create_driver()
-                if driver:
-                    print("ChromeDriver started successfully!")
-                else:
-                    print("Failed to start ChromeDriver.")
                 return driver
             except Exception as e:
-                print(f"Error starting ChromeDriver: {str(e)}")
+                logger.error(f"Failed to create new driver: {e}")
                 return None
-        
-# Return driver to the pool
+    except Exception as e:
+        logger.error(f"Error in get_driver: {e}")
+        return None
+    finally:
+        if not driver_semaphore._value:
+            # Release semaphore if error occurred and no driver was returned
+            driver_semaphore.release()
+
 def release_driver(driver):
+    """
+    Return a driver to the pool or quit it if unhealthy.
+    
+    Args:
+        driver: WebDriver instance to return to the pool
+    """
+    if driver is None:
+        return
+    
+    try:
+        with pool_lock:
+            # Check if driver is still healthy
+            if check_driver_health(driver):
+                # If we have space in the pool, add it back
+                if len(driver_pool) < MAX_DRIVERS:
+                    driver_pool.append(driver)
+                    logger.debug(f"Returned driver to pool, now {len(driver_pool)}/{MAX_DRIVERS}")
+                else:
+                    # Pool is full, quit the extra driver
+                    logger.debug("Driver pool full, quitting extra driver")
+                    try:
+                        driver.quit()
+                    except:
+                        pass
+            else:
+                # Driver is unhealthy, quit and try to create a new one
+                logger.warning("Quitting unhealthy driver")
+                try:
+                    driver.quit()
+                except:
+                    pass
+                
+                # Try to add a new driver to replace the unhealthy one
+                try:
+                    if len(driver_pool) < MAX_DRIVERS:
+                        new_driver = create_driver()
+                        if new_driver:
+                            driver_pool.append(new_driver)
+                            logger.debug("Replaced unhealthy driver in pool")
+                except Exception as e:
+                    logger.error(f"Failed to create replacement driver: {e}")
+    except Exception as e:
+        logger.error(f"Error in release_driver: {e}")
+    finally:
+        # Always release the semaphore to prevent deadlocks
+        driver_semaphore.release()
+
+def cleanup_driver_pool():
+    """
+    Clean up all drivers in the pool when shutting down.
+    """
+    logger.info(f"Cleaning up driver pool with {len(driver_pool)} drivers")
     with pool_lock:
-        driver_pool.append(driver)
+        while driver_pool:
+            driver = driver_pool.pop()
+            try:
+                driver.quit()
+            except:
+                pass
+    logger.info("Driver pool cleanup completed")
+
+# Initialize the driver pool
+initialize_driver_pool()
+
+# Register cleanup function to run at exit
+import atexit
+atexit.register(cleanup_driver_pool)
 
 # Pydantic Models for Request Validation
 class SwapRequest(BaseModel):
@@ -642,6 +764,7 @@ async def swap_index(
 
 def perform_swaps(username, password, swap_items, swap_id, redis_db):
     driver = None
+    max_retries = 3
     logger.info(f"Starting swap process for user {username} with {len(swap_items)} modules")
 
     try:
@@ -654,18 +777,53 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
             update_overall_status(redis_db, swap_id, status="Error", message=overall_error_message)
             return
         
-        # Browser setup
-        driver = get_driver()
+        # Browser setup with retries
+        for retry in range(max_retries):
+            driver = get_driver(timeout=60)  # Wait up to 60 seconds for a driver
+            if driver:
+                break
+            logger.warning(f"Failed to get driver, retry {retry+1}/{max_retries}")
+            time.sleep(2)
+            
+        if not driver:
+            # No available agents at the moment
+            error_message = "Could not acquire a browser instance after multiple attempts."
+            update_all_module_statuses(redis_db, swap_id, swap_items, error_message, "Failed")
+            update_overall_status(redis_db, swap_id, status="Error", message=error_message)
+            return
+            
         logger.debug("Got WebDriver instance")
 
+        login_success = False
+        for retry in range(max_retries):
+            try:
+                login_success = login_to_portal(driver, username, password, swap_id, redis_db)
+                if login_success:
+                    break
+                logger.warning(f"Login attempt {retry+1}/{max_retries} failed")
+            except WebDriverException as e:
+                logger.error(f"WebDriver error during login: {e}")
+                release_driver(driver)  # Release the problematic driver
+                driver = get_driver()   # Get a new driver
+                if not driver:
+                    error_message = "Could not recover browser session after error."
+                    update_overall_status(redis_db, swap_id, status="Error", message=error_message)
+                    return
         success = login_to_portal(driver, username, password, swap_id, redis_db)
-        if not success:
-            logger.error("Login failed")
+        if not login_success:
+            logger.error("All login attempts failed")
             return
         logger.info("Successfully logged into portal")
 
         start_time = time.time()
         while True:
+            # Unsure what this is
+            # Check if status was manually changed to stopped
+            status_data = get_status_data(redis_db, swap_id)
+            if status_data.get("status") == "Stopped":
+                logger.info("Swap process manually stopped")
+                break
+            
             for idx, item in enumerate(swap_items):
                 if not item["swapped"]:
                     logger.debug(f"Attempting swap for module {idx+1}: {item['old_index']} -> {item['new_indexes']}")
@@ -704,12 +862,29 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                                 elif error_type == "OTHER_ERRORS":
                                     other_errors.append(message)
                         except WebDriverException as e:
-                            print(f"WebDriver error: {e}")
-                            release_driver(driver) # Release current driver
+                            logger.error(f"WebDriver error during swap: {e}")
+                            # Handle the error by releasing and getting a new driver
+                            if driver:
+                                release_driver(driver)
+                            
+                            # Get a new driver and try to log in again
                             driver = get_driver() # Get a new driver
-                            login_to_portal(driver, username, password, swap_id, redis_db)
+                            if not driver:
+                                error_message = "Browser error: Could not recover session."
+                                update_status(redis_db, swap_id, idx, error_message)
+                                other_errors.append(error_message)
+                                break
+                            # Try to log in with the new driver
+                            login_success = login_to_portal(driver, username, password, swap_id, redis_db)
+                            if not login_success:
+                                error_message = "Browser error: Could not log in after session recovery."
+                                update_status(redis_db, swap_id, idx, error_message)
+                                other_errors.append(error_message)
+                                break
+                            
                             other_errors.append(f"Browser error: {str(e)}")
                         except Exception as e:
+                            logger.error(f"Unexpected error during swap attempt: {e}", exc_info=True)
                             error_message = f"Error during swap attempt: {e}"
                             other_errors.append(f"Unexpected error: {str(e)}")
                     if not item["swapped"]:
@@ -739,22 +914,36 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                 logger.info("All items successfully swapped")
                 update_overall_status(redis_db, swap_id, status="Completed", message=f"All modules have been successfully swapped.")
                 break
-
+            
+            # Check whether 2h time limit is up
             if time.time() - start_time >= 2 * 3600:
                 logger.warning("2h time limit reached, session ended")
                 update_overall_status(redis_db, swap_id, status="Timed Out", message="Time limit reached before completing the swap.")
                 break
-            
+
+            # Log remaining time
+            hours_left = (2 * 3600 - elapsed_time) / 3600
+            logger.debug(f"Continuing swap attempts, ~{hours_left:.1f} hours remaining in session")
             logger.debug("Waiting 5 minutes before next attempt")
-            time.sleep(5 * 60)
+            
+            # Sleep in smaller intervals to check for stop signals
+            for _ in range(30):  # 5 minutes = 30 * 10 seconds
+                time.sleep(10)
+                # Check if stopped
+                status_data = get_status_data(redis_db, swap_id)
+                if status_data.get("status") == "Stopped":
+                    logger.info("Swap process manually stopped during wait period")
+                    return
+            
     except Exception as e:
         logger.error(f"An error occurred in perform_swaps: {e}", exc_info=True)
         update_all_module_statuses(redis_db, swap_id, swap_items, error_message, "Error")
         update_overall_status(redis_db, swap_id, status="Error", message=f"An error occurred: {str(e)}")
     finally:
+        # Always release driver if we have one
         if driver:
             logger.debug("Releasing WebDriver")
-            release_driver(driver) # Ensure driver is released back to the pool
+            release_driver(driver)
 
 def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
     """
