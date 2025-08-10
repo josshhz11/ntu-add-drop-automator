@@ -249,6 +249,24 @@ def update_overall_status(redis_db, swap_id, status, message):
     status_data["message"] = message  # Update overall message
     set_status_data(redis_db, swap_id, status_data)  # Save changes back to Redis
 
+def update_all_module_statuses(redis_db, swap_id, swap_items, message, status="Failed"):
+    """
+    Updates the status for all modules and the overall status.
+    
+    Args:
+        redis_db: Redis connection
+        swap_id (str): Unique swap session ID
+        swap_items (list): List of swap items
+        message (str): Status message to set
+        status (str): Overall status to set (default: "Failed")
+    """
+    # Update individual module statuses
+    for idx, _ in enumerate(swap_items):
+        update_status(redis_db, swap_id, idx, message)
+    
+    # Update overall status
+    update_overall_status(redis_db, swap_id, status=status, message=message)
+
 # Mount the static folder (like Flask's "static" folder)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -569,8 +587,8 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
         if not is_portal_open():
             logger.warning("Portal is closed")
             error_message = "Portal is closed now."
+            update_all_module_statuses(redis_db, swap_id, swap_items, error_message, "Failed")
             overall_error_message = "Portal is closed now. Please try again from 10:30am - 10:00pm."
-            update_status(redis_db, swap_id, idx, error_message)
             update_overall_status(redis_db, swap_id, status="Error", message=overall_error_message)
             return
         
@@ -669,6 +687,7 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
             time.sleep(5 * 60)
     except Exception as e:
         logger.error(f"An error occurred in perform_swaps: {e}", exc_info=True)
+        update_all_module_statuses(redis_db, swap_id, swap_items, error_message, "Error")
         update_overall_status(redis_db, swap_id, status="Error", message=f"An error occurred: {str(e)}")
     finally:
         if driver:
@@ -777,7 +796,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
             option_text = options[0].text
             try:
                 vacancies = int(option_text.split(" / ")[1])  # Parse out the middle number (vacancies)
-                print(f"The number of vacancies for index {new_index} is {vacancies}.")
+                logger.debug(f"Number of vacancies for index {new_index}: {vacancies}")
             except (IndexError, ValueError) as e:
                 error_message = f"Failed to parse vacancies for index {new_index}: {str(e)}"
                 update_status(redis_db, swap_id, idx, error_message)
@@ -853,7 +872,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
         )
 
         alert = driver.switch_to.alert
-        print(f"Alert text: {alert.text}")
+        logger.info(f"Swap confirmation alert: {alert.text}")
         alert.accept()      # Accept (click OK) on the alert
 
         update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
