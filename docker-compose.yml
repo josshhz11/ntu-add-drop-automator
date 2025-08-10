@@ -15,7 +15,6 @@ services:
       - app-network
     volumes:
       - ./logs:/app/logs
-      - ./app.log:/app/app.log
 
   redis:
     container_name: ntu-add-drop-automator-redis-1

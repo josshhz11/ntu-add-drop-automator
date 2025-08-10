@@ -32,7 +32,7 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s: %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('app.log')  # Changed from /app/debug.log
+        logging.FileHandler('/app/logs/app.log')  # Change path to logs directory
     ]
 )
 logger = logging.getLogger(__name__)
