@@ -104,5 +104,9 @@ RUN chmod -R 755 /app/static && \
     chmod -R 755 /app/logs && \
     chmod -R 755 /app/templates
 
+RUN chown -R www-data:www-data /app && \
+    chmod -R 755 /app/static && \
+    find /app/static -type f -exec chmod 644 {} \;
+
 # 11. Command to start FastAPI with Uvicorn
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]

@@ -70,7 +70,7 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 templates = Jinja2Templates(directory="templates")
 
 # Mount the static folder (like Flask's "static" folder)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static", html=True, check_dir=True), name="static")
 
 # Add middleware to enforce HTTPS
 @app.middleware("https")
@@ -83,7 +83,9 @@ async def https_redirect(request, call_next):
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response = await call_next(request)
-    response.headers["Content-Security-Policy"] = "upgrade-insecure-requests"
+    # Remove CSP for static files to allow loading
+    if not request.url.path.startswith('/static/'):
+        response.headers["Content-Security-Policy"] = "upgrade-insecure-requests"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
