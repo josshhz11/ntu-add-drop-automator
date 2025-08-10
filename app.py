@@ -25,6 +25,7 @@ from starlette.middleware.sessions import SessionMiddleware
 import secrets
 import logging
 from fakeredis import FakeRedis
+import pytz
 
 # Configure logging
 logging.basicConfig(
@@ -282,13 +283,22 @@ async def serve_thumbnail():
     return FileResponse(image_path, media_type="image/jpeg")
 
 def is_portal_open():
-    """Check if the portal is open based on current time"""
-    now = datetime.now()
-        
-    # Check time (10:30 AM to 10:30 PM)
+    """Check if the portal is open based on current time (Singapore timezone)"""
+    # Get current time in Singapore timezone
+    sg_timezone = pytz.timezone('Asia/Singapore')
+    now = datetime.now(sg_timezone)
+    
+    # Convert to time object
     current_time = now.time()
+    
+    # Create time bounds
     start_time = datetime.strptime("10:30", "%H:%M").time()
     end_time = datetime.strptime("22:00", "%H:%M").time()
+    
+    # Add debug logging
+    logger.debug(f"Current time (SG): {current_time}")
+    logger.debug(f"Portal hours: {start_time} - {end_time}")
+    logger.debug(f"Portal is {'open' if start_time <= current_time <= end_time else 'closed'}")
     
     return start_time <= current_time <= end_time
 
