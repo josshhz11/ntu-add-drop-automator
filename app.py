@@ -151,6 +151,8 @@ async def test_redis_connection(redis_db=Depends(get_redis)):
             "redis_port": os.environ.get("REDIS_PORT")
         }
 
+### CHROME DRIVERS
+
 # Persistent ChromeDriver Pool
 MAX_DRIVERS = 1  # Number of preloaded drivers
 driver_pool = []
@@ -201,6 +203,8 @@ class SwapRequest(BaseModel):
     old_index: str
     new_index: str
     swap_id: str
+
+# REDIS STATUS UPDATES
 
 # Utility function to set and get status data from Redis
 def set_status_data(redis_db, swap_id, data):
@@ -268,6 +272,8 @@ def update_all_module_statuses(redis_db, swap_id, swap_items, message, status="F
     # Update overall status
     update_overall_status(redis_db, swap_id, status=status, message=message)
 
+# OTHER HELPER FUNCTIONS
+
 # Mount the static folder (like Flask's "static" folder)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -310,50 +316,79 @@ def login_to_portal(driver, username, password, swap_id, redis_db):
     """
     Log in to the NTU portal.
     """
-    url = 'https://wish.wis.ntu.edu.sg/pls/webexe/ldap_login.login?w_url=https://wish.wis.ntu.edu.sg/pls/webexe/aus_stars_planner.main'
-    driver.get(url)
-
-    username_field = driver.find_element(By.ID, "UID")
-    username_field.send_keys(username)
-    ok_button = driver.find_element(By.XPATH, "//input[@value='OK']")
-    ok_button.click()
-
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "PW")))
-
-    password_field = driver.find_element(By.ID, "PW")
-    password_field.send_keys(password)
-    ok_button = driver.find_element(By.XPATH, "//input[@value='OK']")
-    ok_button.click()
-
-    # Check if login is successful or redirected to a different page
     try:
-        # Wait for the URL to either be the expected URL or the alternate URL
-        WebDriverWait(driver, 10).until(
-        lambda d: d.current_url in [
-            "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.planner",
-            "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.time_table"
-        ]
-    )
-        
-        # Check if redirected to the time_table URL
-        if driver.current_url == "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.time_table":
-            # Check for the "Plan/ Registration" button
-            try:
-                plan_button = driver.find_element(By.XPATH, "//input[@value='Plan/ Registration']")
-                plan_button.click()
-            except Exception:
-                error_message = "Unable to find or click the 'Plan/ Registration' button."
+        url = 'https://wish.wis.ntu.edu.sg/pls/webexe/ldap_login.login?w_url=https://wish.wis.ntu.edu.sg/pls/webexe/aus_stars_planner.main'
+        logger.info(f"Attempting to log in for user {username}")
+        driver.get(url)
+
+        username_field = driver.find_element(By.ID, "UID")
+        username_field.send_keys(username)
+        ok_button = driver.find_element(By.XPATH, "//input[@value='OK']")
+        ok_button.click()
+        logger.debug("Username entered")
+
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "PW")))
+
+        password_field = driver.find_element(By.ID, "PW")
+        password_field.send_keys(password)
+        ok_button = driver.find_element(By.XPATH, "//input[@value='OK']")
+        ok_button.click()
+        logger.debug("Password entered")
+
+        # Check if login is successful or redirected to a different page
+        try:
+            # First check if we're redirected back to login page (wrong credentials)
+            WebDriverWait(driver, 5).until(
+                lambda d: "LDAP_login.main" in d.current_url or 
+                         d.current_url in [
+                             "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.planner",
+                             "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.time_table"
+                         ]
+            )
+
+            # If we're back at the login page, credentials were wrong
+            if "LDAP_login.main" in driver.current_url:
+                error_message = "Login failed - incorrect username or password."
+                logger.error(error_message)
                 update_overall_status(redis_db, swap_id, status="Error", message=error_message)
                 return False
-          
-        # Proceed to wait for the table if on the planner page
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//table[@bordercolor='#E0E0E0']"))
-        )
-    # If login fails, print exception
-    except Exception:
-        # If login fails, update status and exit
-        error_message = "Incorrect username/password. Please try again."
+            
+            logger.info("Successfully navigated to planner page")
+            
+            # Check if redirected to the time_table URL
+            if driver.current_url == "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.time_table":
+                # Check for the "Plan/ Registration" button
+                try:
+                    plan_button = driver.find_element(By.XPATH, "//input[@value='Plan/ Registration']")
+                    plan_button.click()
+                    logger.debug("Clicked Plan/Registration button")
+                except Exception:
+                    error_message = "Unable to find or click the 'Plan/ Registration' button."
+                    logger.error(error_message)
+                    update_overall_status(redis_db, swap_id, status="Error", message=error_message)
+                    return False
+            
+            try:
+                # Proceed to wait for the table if on the planner page
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, "//table[@bordercolor='#E0E0E0']"))
+                )
+                logger.info("Successfully found course table")
+                return True
+            except TimeoutException:
+                error_message = "Could not find course table after login"
+                logger.error(error_message)
+                update_overall_status(redis_db, swap_id, status="Error", message=error_message)
+                return False
+        # If login fails, print exception
+        except TimeoutException:
+            # If login fails, update status and exit
+            error_message = "Incorrect username/password. Please try again."
+            update_overall_status(redis_db, swap_id, status="Error", message=error_message)
+            return False
+    except Exception as e:
+        error_message = f"Login failed: {str(e)}"
+        logger.error(error_message)
         update_overall_status(redis_db, swap_id, status="Error", message=error_message)
         return False
 
