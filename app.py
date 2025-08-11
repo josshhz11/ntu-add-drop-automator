@@ -426,7 +426,12 @@ def update_status(redis_db, swap_id, idx, message, success=False):
         status_data["details"][idx]["message"] = message
         if success:
             status_data["details"][idx]["swapped"] = True
+
+            if "Successfully swapped" in message and "->" in message:
+                new_index = message.split("->")[1].strip().rstrip(".")
+                status_data["details"][idx]["new_index"] = new_index
         redis_db.set(swap_id, json.dumps(status_data))
+        logger.debug(f"Updated status for module {idx}: {message} (success={success})")
 
 def update_overall_status(redis_db, swap_id, status, message):
     """
@@ -442,6 +447,14 @@ def update_overall_status(redis_db, swap_id, status, message):
     status_data["status"] = status  # Update overall status
     status_data["message"] = message  # Update overall message
     set_status_data(redis_db, swap_id, status_data)  # Save changes back to Redis
+
+    # Set TTL based on status type
+    if status in ["Completed", "Error", "Failed", "Timed Out", "Stopped"]:
+        # For final states, keep data for 1 hour only
+        redis_db.expire(swap_id, 3600)
+    else:
+        # For ongoing states, keep data for 3 hours (more than the 2-hour timeout)
+        redis_db.expire(swap_id, 10800)
 
 def update_all_module_statuses(redis_db, swap_id, swap_items, message, status="Failed"):
     """
@@ -915,6 +928,8 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                                         status="Completed",
                                         message="All modules have been successfully swapped."
                                     )
+                                    logger.info("All modules successfully swapped, terminating process early")
+                                    return
                                 break
                             else:
                                 logger.warning(f"Failed to swap {item['old_index']} to {new_index}: {message}")
@@ -996,8 +1011,8 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                 time.sleep(10)
                 # Check if stopped
                 status_data = get_status_data(redis_db, swap_id)
-                if status_data.get("status") == "Stopped":
-                    logger.info("Swap process manually stopped during wait period")
+                if status_data.get("status") in ["Stopped", "Completed", "Error", "Failed", "Timed Out"]:
+                    logger.info(f"Swap process ended with status: {status_data.get('status')}")
                     return
             
     except Exception as e:

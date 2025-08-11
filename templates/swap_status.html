@@ -154,17 +154,27 @@
                             tempDiv.innerHTML = html;
                             
                             // Extract the status text
-                            const newStatus = tempDiv.querySelector('#status-text').textContent;
+                            const newStatus = tempDiv.querySelector('#status-text').textContent.toLowerCase();
                             document.getElementById('status-text').textContent = newStatus;
                             
                             // Update the status indicator color
                             const statusIndicator = document.querySelector('.status-indicator');
                             if (statusIndicator) {
                                 statusIndicator.className = 'status-indicator me-2';
-                                if (newStatus.toLowerCase() === 'completed') {
+                                if (newStatus === 'completed') {
                                     statusIndicator.classList.add('bg-success');
-                                } else if (newStatus.toLowerCase() === 'error' || newStatus.toLowerCase() === 'timed out' || newStatus.toLowerCase() === 'stopped') {
+                                    // Stop polling if completed
+                                    if (pollingInterval) {
+                                        clearInterval(pollingInterval);
+                                        pollingInterval = null;
+                                    }
+                                } else if (newStatus === 'error' || newStatus === 'timed out' || newStatus === 'stopped') {
                                     statusIndicator.classList.add('bg-danger');
+                                    // Stop polling on error states too
+                                    if (pollingInterval) {
+                                        clearInterval(pollingInterval);
+                                        pollingInterval = null;
+                                    }
                                 } else {
                                     statusIndicator.classList.add('bg-primary');
                                 }
@@ -210,14 +220,18 @@
                         })
                         .catch(error => {
                             console.error('Error fetching swap status:', error);
+                            // Don't stop polling on error, keep trying
                         });
                 }
 
                 // Visibility change handler to pause polling in the background
                 function handleVisibilityChange() {
                     if (document.visibilityState === 'visible') {
-                        // Start polling when the page is visible
-                        if (!pollingInterval) {
+                        // Check current status before restarting polling
+                        const currentStatus = document.getElementById('status-text').textContent.toLowerCase();
+                        
+                        // Only start polling if the status is still "Processing"
+                        if (currentStatus === 'processing' && !pollingInterval) {
                             pollingInterval = setInterval(updateStatus, 5000);
                         }
                     } else {
@@ -228,6 +242,18 @@
                         }
                     }
                 }
+
+                // Initialize status checking on page load
+                document.addEventListener('DOMContentLoaded', () => {
+                    // Perform initial check
+                    updateStatus();
+                    
+                    // Start polling only if status is "Processing"
+                    const currentStatus = document.getElementById('status-text').textContent.toLowerCase();
+                    if (currentStatus === 'processing') {
+                        pollingInterval = setInterval(updateStatus, 5000);
+                    }
+                });
 
                 // Set up visibility change listener
                 document.addEventListener('visibilitychange', handleVisibilityChange);
