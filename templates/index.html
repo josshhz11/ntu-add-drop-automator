@@ -72,11 +72,11 @@
                     <div class="alert alert-info">{{ message }}</div>
                 {% endif %}
 
-                <div class="card border-0 shadow-sm flex-grow-1">
-                    <div class="card-body p-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 d-flex flex-column">
                         <h4 class="card-title mb-4">Login Details</h4>
                         
-                        <form action="/input-index" method="post" class="d-flex flex-column h-100">
+                        <form action="/input-index" method="post" class="d-flex flex-column flex-grow-1">
                             <div class="mb-3">
                                 <label for="username" class="form-label">Username</label>
                                 <div class="input-group">
@@ -104,7 +104,7 @@
                                 </div>
                             </div>
                             
-                            <div class="mt-auto">
+                            <div class="mt-auto pt-4">
                                 <button type="submit" class="btn btn-primary w-100">
                                     <i class="bi bi-arrow-right-circle me-2"></i>Input Indexes
                                 </button>

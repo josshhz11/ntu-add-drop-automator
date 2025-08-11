@@ -69,43 +69,45 @@
 
             <!-- Right Panel - keep all this content the same -->
             <div class="col-md-6 bg-light p-4 d-flex flex-column">
-                <div class="card-body p-4">
-                    <h4 class="card-title mb-4">Input Indexes</h4>
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <h4 class="card-title mb-4">Input Indexes</h4>
 
-                    <form id="indexForm" method="POST" action="/swap-index" class="d-flex flex-column h-100">
-                        <!-- Hidden input to pass the number of modules -->                
-                        <input type="hidden" name="number_of_modules" value="{{ num_modules }}">
+                        <form id="indexForm" method="POST" action="/swap-index" class="d-flex flex-column flex-grow-1">
+                            <!-- Hidden input to pass the number of modules -->                
+                            <input type="hidden" name="number_of_modules" value="{{ num_modules }}">
 
-                        <div id="modulesContainer" class="flex-grow-1 overflow-auto mb-4">
-                            {% for i in range(num_modules) %}
-                            <div class="module-input-group p-3 mb-3">
-                                <h5 class="mb-3">Module {{ i + 1 }}</h5>
-                                <div class="mb-3">
-                                    <label for="old_index_{{ i }}" class="form-label">Old Index:</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="bi bi-bookmark"></i></span>
-                                        <input type="text" class="form-control" id="old_index_{{ i }}" name="old_index_{{ i }}" 
-                                            placeholder="Enter current index" required {% if i == 0 %}autofocus{% endif %}>
+                            <div id="modulesContainer" class="flex-grow-1 overflow-auto mb-4">
+                                {% for i in range(num_modules) %}
+                                <div class="module-input-group p-3 mb-3">
+                                    <h5 class="mb-3">Module {{ i + 1 }}</h5>
+                                    <div class="mb-3">
+                                        <label for="old_index_{{ i }}" class="form-label">Old Index:</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-bookmark"></i></span>
+                                            <input type="text" class="form-control" id="old_index_{{ i }}" name="old_index_{{ i }}" 
+                                                placeholder="Enter current index" required {% if i == 0 %}autofocus{% endif %}>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="new_index_{{ i }}" class="form-label">New Index:</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text"><i class="bi bi-arrow-left-right"></i></span>
+                                            <input type="text" class="form-control" id="new_index_{{ i }}" name="new_index_{{ i }}" 
+                                                placeholder="e.g., 80271, 80272, 80273" required>
+                                        </div>
+                                        <small class="text-muted">Separate multiple indexes with commas</small>
                                     </div>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="new_index_{{ i }}" class="form-label">New Index:</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="bi bi-arrow-left-right"></i></span>
-                                        <input type="text" class="form-control" id="new_index_{{ i }}" name="new_index_{{ i }}" 
-                                            placeholder="e.g., 80271, 80272, 80273" required>
-                                    </div>
-                                    <small class="text-muted">Separate multiple indexes with commas</small>
-                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
-                        </div>
-                        <div class="mt-auto">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <i class="bi bi-arrow-right-circle me-2"></i>Automate Swap
-                            </button>
-                        </div>
-                    </form>
+                            <div class="mt-auto pt-4">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-arrow-right-circle me-2"></i>Automate Swap
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

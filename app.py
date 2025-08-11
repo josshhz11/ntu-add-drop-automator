@@ -913,7 +913,7 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                                 )
 
                                 # Also update overall status to show progress
-                                remaining = sum(1 for i in swap_items if not i["swapped"])
+                                remaining = sum(1 for idx, item in swap_items if not item["swapped"])
                                 if remaining > 0:
                                     update_overall_status(
                                         redis_db, 
@@ -1206,7 +1206,25 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
         logger.info(f"Swap confirmation alert: {alert.text}")
         alert.accept()      # Accept (click OK) on the alert
 
-        update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
+        """
+        # TO CHECK WHAT THE PAGE AND ELEMENTS ARE WHEN WE END UP AT HOME PAGE AFTER SUCCESSFUL SWAP
+        # Verify the swap was successful by checking if we're back at the main page
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//table[@bordercolor='#E0E0E0']"))
+            )
+            # Try to find new index radio button to confirm swap
+            new_radio = driver.find_element(By.XPATH, f"//input[@type='radio' and @value='{new_index}']")
+            if new_radio:
+                update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
+                return True, "", ""
+        except Exception as e:
+            logger.error(f"Could not verify swap success: {e}")
+            return False, "Could not verify if swap was successful", "OTHER_ERRORS"
+        """
+
+        # TO REMOVE THIS UPDATE_STATUS AS WE WILL BE DOING IT IN PERFORM_SWAP ALR
+        # update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
         return True, "", "" # Successful swap, no error message
     
     except SessionNotCreatedException as e:

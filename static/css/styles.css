@@ -401,3 +401,51 @@ form.d-flex.flex-column {
     flex: 1;
     min-height: 400px;
 }
+
+/* New ones to fix the positioning of button on index.html and input_index.html */
+.card.border-0.shadow-sm.h-100 {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-body.p-4.d-flex.flex-column {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Update the form styling */
+form.d-flex.flex-column.flex-grow-1 {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* Important for proper flex behavior */
+}
+
+/* Button container spacing */
+.mt-auto.pt-4 {
+    margin-top: auto !important;
+    padding-top: 1.5rem !important;
+}
+
+/* Ensure the main container takes full height minus padding */
+.main-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: calc(100vh - 3rem);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Make sure row fills available height */
+.row.shadow-sm {
+    flex: 1;
+    margin: 0;
+}
+
+/* Ensure right panel fills height properly */
+.col-md-6.bg-light {
+    display: flex;
+    flex-direction: column;
+}
