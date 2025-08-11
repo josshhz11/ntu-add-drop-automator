@@ -895,9 +895,26 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                                     redis_db,
                                     swap_id,
                                     idx,
-                                    message=f"Successfully swapped index {item['old_index']} to {item['new_index']}.",
+                                    message=f"Successfully swapped index {item['old_index']} to {new_index}.",
                                     success=True
                                 )
+
+                                # Also update overall status to show progress
+                                remaining = sum(1 for i in swap_items if not i["swapped"])
+                                if remaining > 0:
+                                    update_overall_status(
+                                        redis_db, 
+                                        swap_id, 
+                                        status="Processing", 
+                                        message=f"{len(swap_items) - remaining}/{len(swap_items)} modules swapped successfully."
+                                    )
+                                else:
+                                    update_overall_status(
+                                        redis_db,
+                                        swap_id,
+                                        status="Completed",
+                                        message="All modules have been successfully swapped."
+                                    )
                                 break
                             else:
                                 logger.warning(f"Failed to swap {item['old_index']} to {new_index}: {message}")
@@ -1175,7 +1192,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
         alert.accept()      # Accept (click OK) on the alert
 
         update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
-        return True, "" # Successful swap, no error message
+        return True, "", "" # Successful swap, no error message
     
     except SessionNotCreatedException as e:
         error_message = "Session expired. Re-logging in..."
