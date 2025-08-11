@@ -916,7 +916,8 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                 break
             
             # Check whether 2h time limit is up
-            if time.time() - start_time >= 2 * 3600:
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= 2 * 3600:
                 logger.warning("2h time limit reached, session ended")
                 update_overall_status(redis_db, swap_id, status="Timed Out", message="Time limit reached before completing the swap.")
                 break
@@ -1210,4 +1211,5 @@ async def log_out(request: Request, redis_db=Depends(get_redis)):
 
 
 if __name__ == "__main__":
+
     uvicorn.run(app, host="0.0.0.0", port=5000)
