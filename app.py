@@ -26,6 +26,7 @@ import secrets
 import logging
 from fakeredis import FakeRedis
 import pytz
+import psutil
 
 # Configure logging
 logging.basicConfig(
@@ -174,24 +175,45 @@ async def test_redis_connection(redis_db=Depends(get_redis)):
 ### CHROME DRIVERS
 
 # Persistent ChromeDriver Pool
-MAX_DRIVERS = 8  # (4GB RAM - 1GB system) / 300MB per driver = ~8 drivers
+MAX_DRIVERS = 6  # Allows ~1.8GB for Chrome drivers (300MB each)
+MEMORY_THRESHOLD = 80 # Stop creating new drivers at 80% memory usage
 driver_pool = []
 pool_lock = threading.Lock()
 driver_semaphore = threading.Semaphore(MAX_DRIVERS)  # Control concurrent access
 
-def create_driver():
+def create_driver(max_retries=3):
     """
     Create and return a new Selenium WebDriver instance.
     """
-    try:
-        logger.info("Starting new ChromeDriver instance...")
-        service = Service("/usr/local/bin/chromedriver")
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-        logger.info("ChromeDriver started successfully!")
-        return driver
-    except Exception as e:
-        logger.error(f"Error creating WebDriver: {str(e)}")
-        raise
+    for attempt in range(max_retries):
+        try:
+            logger.info("Starting new ChromeDriver instance...")
+            service = Service("/usr/local/bin/chromedriver")
+
+            # Create a new options object for each attempt to avoid potential issues
+            options = Options()
+            options.binary_location = "/usr/bin/google-chrome"
+            options.add_argument("--headless=new")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-software-rasterizer")
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--single-process")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--disable-setuid-sandbox")
+
+            driver = webdriver.Chrome(service=service, options=options)
+            logger.info("ChromeDriver started successfully!")
+            return driver
+        except Exception as e:
+            logger.error(f"Error creating WebDriver (attempt {attempt+1}/{max_retries}): {str(e)}")
+            if attempt == max_retries - 1:
+                logger.error("All attempts to create driver failed")
+                raise
+            # Wait before retrying
+            time.sleep(2)
 
 def check_driver_health(driver):
     """
@@ -205,23 +227,48 @@ def check_driver_health(driver):
         logger.warning("Driver health check failed")
         return False
 
+# Add memory monitoring
+def get_memory_usage():
+    memory = psutil.virtual_memory()
+    return {
+        'total': memory.total / (1024 * 1024 * 1024),  # GB
+        'available': memory.available / (1024 * 1024 * 1024),  # GB
+        'percent': memory.percent
+    }
+
 def initialize_driver_pool():
     """
     Initialize the driver pool with MAX_DRIVERS instances.
     """
-    logger.info(f"Initializing driver pool with {MAX_DRIVERS} drivers")
+    # Check system resources before creating drivers
+    memory = get_memory_usage()
+    logger.info(f"Memory before initialization: {memory['available']:.1f}GB available ({memory['percent']}% used)")
+
+    # Reserve 1GB for system and other processes
+    available_for_drivers = memory['total'] - (1024 * 1024 * 1024)
+    max_possible_drivers = int(available_for_drivers / (300 * 1024 * 1024))  # 300MB per driver
+
+    actual_max_drivers = min(MAX_DRIVERS, max_possible_drivers)
+    logger.info(f"Creating up to {actual_max_drivers} drivers")
+
     successful_drivers = 0
-    
     for i in range(MAX_DRIVERS):
+        if get_memory_usage()['percent'] > MEMORY_THRESHOLD:
+            logger.warning(f"Memory usage exceeded {MEMORY_THRESHOLD}%, stopping driver creation")
+            break
+
         try:
             driver = create_driver()
             if driver:
                 driver_pool.append(driver)
                 successful_drivers += 1
+        
         except Exception as e:
             logger.error(f"Failed to create driver {i+1}/{MAX_DRIVERS}: {e}")
     
-    logger.info(f"Driver pool initialized with {successful_drivers}/{MAX_DRIVERS} drivers")
+    memory = get_memory_usage()
+    logger.info(f"Driver pool initialized with {successful_drivers} drivers")
+    logger.info(f"Final memory: {memory['available']:.1f}GB available ({memory['percent']}% used)")
     return successful_drivers
 
 def get_driver(timeout=30):

@@ -11,12 +11,19 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - NODE_OPTIONS="--max-old-space-size=2048"  # Increase Node.js memory limit if needed
     networks:
       - app-network
     volumes:
       - ./logs:/app/logs
       - ./static:/app/static:ro  # read-only for static files
       - ./templates:/app/templates:ro
+    deploy:
+      resources:
+        limits:
+          memory: 3G # Maximum memory limit
+        reservations:
+          memory: 2G # Guaranteed memory
 
   redis:
     container_name: ntu-add-drop-automator-redis-1
