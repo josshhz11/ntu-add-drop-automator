@@ -1206,26 +1206,37 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
         logger.info(f"Swap confirmation alert: {alert.text}")
         alert.accept()      # Accept (click OK) on the alert
 
-        """
+        
         # TO CHECK WHAT THE PAGE AND ELEMENTS ARE WHEN WE END UP AT HOME PAGE AFTER SUCCESSFUL SWAP
         # Verify the swap was successful by checking if we're back at the main page
         try:
+            # Wait for redirection to the planner page after successful swap
             WebDriverWait(driver, 10).until(
+                lambda d: d.current_url in [
+                    "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.planner",
+                    "https://wish.wis.ntu.edu.sg/pls/webexe/AUS_STARS_PLANNER.time_table"
+                ]
+            )
+            
+            # If we reached here, we're on the planner page which indicates success
+            logger.info(f"Successfully reached planner page after swapping {old_index} -> {new_index}")
+            
+            # Additional check: Try to find the module table
+            WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.XPATH, "//table[@bordercolor='#E0E0E0']"))
             )
-            # Try to find new index radio button to confirm swap
-            new_radio = driver.find_element(By.XPATH, f"//input[@type='radio' and @value='{new_index}']")
-            if new_radio:
-                update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
-                return True, "", ""
+            
+            # At this point we've confirmed we're back at the planner page with the module table
+            # This is sufficient to consider the swap successful
+            # update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
+            return True, "", ""
+        
+        except TimeoutException as e:
+            logger.error(f"Timed out waiting for planner page after swap: {e}")
+            return False, "Could not verify if swap was successful - timeout waiting for planner page", "OTHER_ERRORS"
         except Exception as e:
             logger.error(f"Could not verify swap success: {e}")
-            return False, "Could not verify if swap was successful", "OTHER_ERRORS"
-        """
-
-        # TO REMOVE THIS UPDATE_STATUS AS WE WILL BE DOING IT IN PERFORM_SWAP ALR
-        # update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
-        return True, "", "" # Successful swap, no error message
+            return False, f"Could not verify if swap was successful: {str(e)}", "OTHER_ERRORS"
     
     except SessionNotCreatedException as e:
         error_message = "Session expired. Re-logging in..."
