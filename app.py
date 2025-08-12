@@ -1228,7 +1228,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
             # At this point we've confirmed we're back at the planner page with the module table
             # This is sufficient to consider the swap successful
             # update_status(redis_db, swap_id, idx, f"Successfully swapped {old_index} -> {new_index}", success=True)
-            return True, "", ""
+            return True
         
         except TimeoutException as e:
             logger.error(f"Timed out waiting for planner page after swap: {e}")
