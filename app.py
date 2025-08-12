@@ -869,7 +869,6 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                     error_message = "Could not recover browser session after error."
                     update_overall_status(redis_db, swap_id, status="Error", message=error_message)
                     return
-        success = login_to_portal(driver, username, password, swap_id, redis_db)
         if not login_success:
             logger.error("All login attempts failed")
             return
@@ -913,7 +912,7 @@ def perform_swaps(username, password, swap_items, swap_id, redis_db):
                                 )
 
                                 # Also update overall status to show progress
-                                remaining = sum(1 for idx, item in swap_items if not item["swapped"])
+                                remaining = sum(1 for item in swap_items if not item["swapped"])
                                 if remaining > 0:
                                     update_overall_status(
                                         redis_db, 
@@ -1087,7 +1086,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
         """
 
         # 5) Check for an alert, if portal is closed
-        try:
+        """try:
             WebDriverWait(driver, 5).until(EC.alert_is_present())
             alert = driver.switch_to.alert
             alert_text = alert.text
@@ -1097,7 +1096,7 @@ def attempt_swap(old_index, new_index, idx, driver, swap_id, redis_db):
             update_overall_status(redis_db, swap_id, status="Error", message=error_message)
             return False, error_message, "PORTAL_ERRORS"
         except TimeoutException:
-            pass # If no alert, proceed to the swap index page
+            pass # If no alert, proceed to the swap index page"""
 
         # 6) Wait for the swap index page
         WebDriverWait(driver, 10).until(
